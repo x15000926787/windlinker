@@ -4,6 +4,7 @@ package cn.tellsea.component;
  * @author xuxu
  * @create 2020-11-11 23:08
  */
+import cn.tellsea.utils.anaUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,34 +40,39 @@ public class KeyExpiredListener  implements MessageListener {
      *
      */
 
+    @Autowired
+    public FirstClass firstClass;
     @Override
     public void onMessage(Message message, byte[] bytes) {
         byte[] body = message.getBody();// 建议使用: valueSerializer
         byte[] channel = message.getChannel();
-        //log.info(String.format("channel: %s, body: %s, bytes: %s",new String(channel), new String(body), new String(bytes)));
+        log.info(String.format("channel: %s, body: %s, bytes: %s",new String(channel), new String(body), new String(bytes)));
         Runnable noArguments = () -> {
             try {
 
 
 
                  log.info(new String(body));
-                /*{
+
+                 //log.info(anaUtil.objana_v.toJSONString());
+                {
                     try {
-                        if (channel.contains("expired") ) {
+                        if (new String(channel).contains("expired") ) {
                             //logger.warn(message);
-                            AnaUtil.handleExpired(message);
+                            //anaUtil.handleExpired(message);
                         }
                         else {
 
 
                             //logger.warn(message+","+channel);
-                            AnaUtil.handleMessage( message);
+                            anaUtil.handleMessage(new String(body));
 
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
+                        log.info(e.toString());
                     }
-                }*/
+                }
 
             } catch (Exception e) {
                 e.printStackTrace();

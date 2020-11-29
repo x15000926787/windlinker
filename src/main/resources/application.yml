@@ -11,47 +11,6 @@ spring:
 
   datasource:
     driver-class-name: org.sqlite.JDBC
-    url: jdbc:sqlite:/Volumes/APP/OneDrive/windlinker/src/main/db/myDb
+    url: jdbc:sqlite:/Volumes/APP/windlinker/src/main/db/myDb
     username: root
     password: root
-
-  swagger:
-    enabled: true
-    title: windlinker_api
-    base-package: cn.tellsea.Controller.HelloWorld
-    description: 这是一个简单的 Swagger API 演示
-    version: 1.0.0-SNAPSHOT
-    contact:
-      name: xuxu
-      email: 158295783@qq.com
-      # url: http://xkcoding.com
-    # swagger扫描的基础包，默认：全扫描
-    # base-package:
-    # 需要处理的基础URL规则，默认：/**
-    # base-path:
-    # 需要排除的URL规则，默认：空
-    # exclude-path:
-    security:
-      # 是否启用 swagger 登录验证
-      filter-plugin: true
-      username: root
-      password: Sun77118@
-    global-response-messages:
-      GET[0]:
-        code: 400
-        message: Bad Request，一般为请求参数不对
-      GET[1]:
-        code: 404
-        message: NOT FOUND，一般为请求路径不对
-      GET[2]:
-        code: 500
-        message: ERROR，一般为程序内部错误
-      POST[0]:
-        code: 400
-        message: Bad Request，一般为请求参数不对
-      POST[1]:
-        code: 404
-        message: NOT FOUND，一般为请求路径不对
-      POST[2]:
-        code: 500
-        message: ERROR，一般为程序内部错误

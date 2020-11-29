@@ -1,12 +1,15 @@
 package cn.tellsea.service;
 
 import cn.tellsea.Mapper.HelloMapper;
+import cn.tellsea.Model.DataList;
+import cn.tellsea.Model.DevList;
 import cn.tellsea.Model.HelloModel;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-
+@Slf4j
 @Service
 public class HelloService {
 
@@ -25,7 +28,8 @@ public class HelloService {
         return dao.select(id);
     }
 
-    public List<HelloModel> selectAll() {
+    public  List<HelloModel> selectAll() {
+
         return dao.selectAll();
     }
 
@@ -36,4 +40,15 @@ public class HelloService {
     public boolean delete(Integer id) {
         return dao.delete(id) > 0;
     }
+
+
+    public  List<DevList> selectAllDev() {
+        return dao.selectAllDev();
+    }
+
+    public  List<DataList> selectAllData() {
+        return dao.selectAllData();
+    }
+
+
 }

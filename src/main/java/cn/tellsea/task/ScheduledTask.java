@@ -29,7 +29,7 @@ import java.util.*;
 
 @Slf4j
 @Component
-@EnableScheduling
+//@EnableScheduling
 @PropertySource({"classpath:para.properties"})
 public class ScheduledTask {
 

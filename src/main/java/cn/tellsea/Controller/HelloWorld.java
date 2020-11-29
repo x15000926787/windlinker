@@ -1,7 +1,7 @@
 package cn.tellsea.Controller;
 
 import cn.tellsea.Model.HelloModel;
-
+import java.util.List;
 import cn.tellsea.service.HelloService;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,16 +30,17 @@ public class HelloWorld {
 
     @GetMapping("/{id}")
     @ApiOperation("根据id查询用户的接口")
-    @ApiImplicitParam(name = "id", value = "用户id", defaultValue = "99", required = true)
+    @ApiImplicitParam(name = "id", value = "用户id", defaultValue = "1", required = true)
     public HelloModel getUserById(@PathVariable Integer id) {
         HelloModel user = helloService.select(id);
         return user;
     }
-    /*@GetMapping("/list")
+    @GetMapping("/list")
+    @ApiOperation("查询所有用户的接口")
     public List<HelloModel> List() {
-        return HelloService.selectAll();
+        return helloService.selectAll();
     }
-
+/*
     @PostMapping("/post")
     public String Post(
             @RequestBody ReqBody map

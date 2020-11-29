@@ -23,6 +23,14 @@ public interface HelloMapper {
     @Select("SELECT * FROM hello")
     List<HelloModel> selectAll();
 
+    // 查询全部设备
+    @Select("SELECT * FROM devlist")
+    List<DevList> selectAllDev();
+
+    // 查询全部数据点
+    @Select("SELECT * FROM datalist")
+    List<DataList> selectAllData();
+
     // 更新 value
     @Update("UPDATE hello SET value=#{value} WHERE id=#{id}")
     int updateValue(HelloModel model);

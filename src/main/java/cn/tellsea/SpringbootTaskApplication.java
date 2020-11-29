@@ -1,13 +1,26 @@
 package cn.tellsea;
 
 
+import cn.tellsea.Model.DevList;
 import cn.tellsea.component.FirstClass;
+import cn.tellsea.service.HelloService;
+import cn.tellsea.service.RedisService;
+import cn.tellsea.utils.anaUtil;
+import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 
 /*@SpringBootApplication
@@ -21,10 +34,6 @@ public class SpringbootTaskApplication {
 
 
 
-import org.slf4j.Logger;
-        import org.slf4j.LoggerFactory;
-
-
 
 @Slf4j
 @SpringBootApplication
@@ -34,9 +43,14 @@ public class SpringbootTaskApplication implements CommandLineRunner {
 
     /*@Autowired
     NettyConfig nettyConfig;*/
-
     @Autowired
-    FirstClass firstClass;
+    private HelloService helloService;
+    @Autowired
+    public RedisService redisService;
+    @Autowired
+    public FirstClass firstClass;
+    @Autowired
+    public  anaUtil anautil;
     public static void main(String[] args) {
         new SpringApplicationBuilder(SpringbootTaskApplication.class).run(args);
               //  .web(WebApplicationType.NONE)
@@ -61,6 +75,31 @@ public class SpringbootTaskApplication implements CommandLineRunner {
 
        // Consts.SERVER_PORT = nettyConfig.getPort();
        // Consts.MODULE_TYPE = nettyConfig.getModuleType();
+        if (Objects.nonNull(helloService))
+        {
+
+
+            try {
+                anaUtil.objana_v = JSONObject.parseObject(helloService.selectAllData().toString().replace("[","{").replace("]","}"));
+
+                log.warn(anaUtil.objana_v.toString());
+            }catch (Exception e)
+            {
+                log.error("objana_v 初始化异常   "+e.toString()+"   "+helloService.selectAllDev().toString().replace("[","{").replace("]","}"));
+            }
+            try {
+                anaUtil.dev_list = JSONObject.parseObject(helloService.selectAllDev().toString().replace("[","{").replace("]","}"));
+
+                log.warn(anaUtil.dev_list.toString());
+            }catch (Exception e)
+            {
+                log.error("objana_v 初始化异常   "+e.toString()+"   "+helloService.selectAllDev().toString().replace("[","{").replace("]","}"));
+            }
+
+        }else
+            log.error("helloService error");
+
+        log.info(redisService.get("ai_23"));
         log.info("应用初始化完成");
     }
 }

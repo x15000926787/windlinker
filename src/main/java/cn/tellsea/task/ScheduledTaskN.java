@@ -31,7 +31,7 @@ import java.util.Map;
 
 @Slf4j
 @Component
-@EnableScheduling
+//@EnableScheduling
 @PropertySource({"classpath:para.properties"})
 public class ScheduledTaskN {
 
