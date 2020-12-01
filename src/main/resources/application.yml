@@ -4,13 +4,23 @@ spring:
     host: 58.247.132.78
     port: 6389
     password: Shcs123
-
+    timeout: 2000
+  jedis:
+    host: 58.247.132.78
+    password: Shcs123
+    port: 6389
+    timeout: 2000
+    maxTotal: 15 # 最大连接数
+    maxIdle: 10 # 最大空闲连接
+    minIdle: 5 # 最小空闲连接
+    maxWaitMillis: 10000 # 获取连接最大等待时间
+    testOnBorrow: true # 获取连接时检测是否可用
   thymeleaf:
     mode: LEGACYHTML5
     cache: false
 
   datasource:
     driver-class-name: org.sqlite.JDBC
-    url: jdbc:sqlite:/Volumes/APP/windlinker/src/main/db/myDb
+    url: jdbc:sqlite:/Users/xuxu/Downloads/windlinker/src/main/db/myDb
     username: root
     password: root

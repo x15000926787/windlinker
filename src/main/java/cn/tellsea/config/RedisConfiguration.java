@@ -18,8 +18,8 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 public class RedisConfiguration {
 
     @Bean
-    RedisMessageListenerContainer container(RedisConnectionFactory connectionFactory) {
-
+    RedisMessageListenerContainer container(RedisConnectionFactory connectionFactory) throws ClassNotFoundException {
+        System.out.println("redisconfig");
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
         container.addMessageListener(new KeyExpiredListener(), new PatternTopic("__keyevent@0__:*"));

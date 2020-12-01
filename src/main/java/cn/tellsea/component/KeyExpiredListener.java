@@ -20,6 +20,8 @@ import org.springframework.data.redis.listener.KeyExpirationEventMessageListener
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLOutput;
+
 @Slf4j
 public class KeyExpiredListener  implements MessageListener {
 
@@ -40,8 +42,15 @@ public class KeyExpiredListener  implements MessageListener {
      *
      */
 
-    @Autowired
-    public FirstClass firstClass;
+
+    private FirstClass firstClass=null;
+
+    private  anaUtil anautil=null;
+    public KeyExpiredListener() throws ClassNotFoundException {
+        System.out.println("listener");
+        anautil = (anaUtil) SpringUtil.getBean(Class.forName("cn.tellsea.utils.anaUtil"));
+        firstClass = (FirstClass) SpringUtil.getBean(Class.forName("cn.tellsea.component.FirstClass"));
+    }
     @Override
     public void onMessage(Message message, byte[] bytes) {
         byte[] body = message.getBody();// 建议使用: valueSerializer
@@ -65,7 +74,7 @@ public class KeyExpiredListener  implements MessageListener {
 
 
                             //logger.warn(message+","+channel);
-                            anaUtil.handleMessage(new String(body));
+                            anautil.handleMessage(new String(body));
 
                         }
                     } catch (Exception e) {
@@ -79,6 +88,6 @@ public class KeyExpiredListener  implements MessageListener {
             }
 
         };
-        FirstClass.redis_executor.execute( noArguments);
+        firstClass.redis_executor.execute( noArguments);
     }
 }

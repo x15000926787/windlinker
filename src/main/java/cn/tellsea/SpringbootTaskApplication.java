@@ -46,11 +46,11 @@ public class SpringbootTaskApplication implements CommandLineRunner {
     @Autowired
     private HelloService helloService;
     @Autowired
-    public RedisService redisService;
+    private RedisService redisService;
     @Autowired
-    public FirstClass firstClass;
+    private FirstClass firstClass;
     @Autowired
-    public  anaUtil anautil;
+    private  anaUtil anautil;
     public static void main(String[] args) {
         new SpringApplicationBuilder(SpringbootTaskApplication.class).run(args);
               //  .web(WebApplicationType.NONE)
@@ -80,17 +80,17 @@ public class SpringbootTaskApplication implements CommandLineRunner {
 
 
             try {
-                anaUtil.objana_v = JSONObject.parseObject(helloService.selectAllData().toString().replace("[","{").replace("]","}"));
+                anautil.objana_v = JSONObject.parseObject(helloService.selectAllData().toString().replace("[","{").replace("]","}"));
 
-                log.warn(anaUtil.objana_v.toString());
+                log.warn(anautil.objana_v.toString());
             }catch (Exception e)
             {
                 log.error("objana_v 初始化异常   "+e.toString()+"   "+helloService.selectAllDev().toString().replace("[","{").replace("]","}"));
             }
             try {
-                anaUtil.dev_list = JSONObject.parseObject(helloService.selectAllDev().toString().replace("[","{").replace("]","}"));
+                anautil.dev_list = JSONObject.parseObject(helloService.selectAllDev().toString().replace("[","{").replace("]","}"));
 
-                log.warn(anaUtil.dev_list.toString());
+                log.warn(anautil.dev_list.toString());
             }catch (Exception e)
             {
                 log.error("objana_v 初始化异常   "+e.toString()+"   "+helloService.selectAllDev().toString().replace("[","{").replace("]","}"));

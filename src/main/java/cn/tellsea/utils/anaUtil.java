@@ -10,7 +10,10 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
+import redis.clients.jedis.Jedis;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
@@ -19,39 +22,40 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Pattern;
-@Service
+
 @Slf4j
-public final class anaUtil {
+@Component
+public  class anaUtil {
 
     @Autowired
-    public static HelloService helloService;
+    public  HelloService helloService;
 
-    public static RedisService tjedis;//=new RedisServiceImpl();
+    //public  RedisService tjedis;//=new RedisServiceImpl();
 
-    public static JSONObject objana_v = new JSONObject();
+    public  JSONObject objana_v = new JSONObject();
 
-    public static JSONObject dev_list = new JSONObject();
-    public static JSONObject msg_author = new JSONObject();
-    public static JSONObject objcondition = new JSONObject();
-    public static JSONObject online_warn = new JSONObject();
-    public static JSONObject ana_fullname = new JSONObject();
+    public  JSONObject dev_list = new JSONObject();
+    public  JSONObject msg_author = new JSONObject();
+    public  JSONObject objcondition = new JSONObject();
+    public  JSONObject online_warn = new JSONObject();
+    public  JSONObject ana_fullname = new JSONObject();
 
-    public static JSONArray dn_array = new JSONArray();
-    public static HashMap<String,String> saveno_kkey = new HashMap<>();
+    public  JSONArray dn_array = new JSONArray();
+    public  HashMap<String,String> saveno_kkey = new HashMap<>();
 
-    public static ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
-    public static ScriptEngine scriptEngine = scriptEngineManager.getEngineByName("nashorn");
+    public  ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
+    public  ScriptEngine scriptEngine = scriptEngineManager.getEngineByName("nashorn");
     //private  final String projectName = "【"+PropertyUtil.getProperty("project_name")+"】";
     //private  final int user_divide = Integer.parseInt(PropertyUtil.getProperty("user_divide","0"));           //默认用户不分组
     // public  LocalDateTime rightnow = null;
-    public static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    public static DateTimeFormatter ymd = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    public  static  String s= null;
-    public anaUtil()
-    {
-        tjedis=new RedisServiceImpl();
-    }
-    public static boolean isDoubleOrFloat(String str) {
+    public  DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    public  DateTimeFormatter ymd = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    public    String s= null;
+    //public anaUtil()
+    //{
+       // tjedis=new RedisServiceImpl();
+    //}
+    public  boolean isDoubleOrFloat(String str) {
         if (null == str || "".equals(str)) {
             return false;
         }
@@ -90,7 +94,7 @@ public final class anaUtil {
         return Logs;
     }*/
 
-    public static   void loadAna_v(){
+    public    void loadAna_v(){
 
         log.info("开始读取ana内容.......");
         try {
@@ -104,7 +108,7 @@ public final class anaUtil {
 
 
     }
-    public  static   void loadDevList(){
+    public     void loadDevList(){
 
         log.info("开始读取devlist内容.......");
         try {
@@ -123,7 +127,7 @@ public final class anaUtil {
      * getPrepatedResultSet
      */
 
-    public static void add_red(String sql)
+    public  void add_red(String sql)
     {
          log.info(sql);
         /*try{
@@ -138,7 +142,7 @@ public final class anaUtil {
         }*/
 
     }
-    public static void handleTime(String key,String vals) {
+    public  void handleTime(String key,String vals) {
         String down, up, limit = " ", dbname, rtuno, sn, msgah, mailah, altah, mobs = "", gkey = "";
         // Calendar c;
         String msg = "";
@@ -146,11 +150,12 @@ public final class anaUtil {
         //SimpleDateFormat df,df2,df3;
         LocalDateTime rightnow = LocalDateTime.now();
         char[] ss = null;
-        HashMap<String, Object> tmap = null;
+        JSONObject tmap = new JSONObject();
+
         String rnow = rightnow.format(formatter);
 
-        HashMap<String, Object> map = new HashMap<String, Object>();
-        HashMap<String, Object> tuser = new HashMap<String, Object>();
+        JSONObject map = new JSONObject();
+
         // df3 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
 
 
@@ -158,14 +163,17 @@ public final class anaUtil {
         int timevalid = 0;
         //
 
-        map = (HashMap<String, Object>) objana_v.get(key);
-        tmap = (HashMap<String, Object>) dev_list.get(objana_v.getString("pid"));
+        map = (JSONObject) objana_v.get(key);
+        log.info(dev_list.toString());
+        log.info(dev_list.get(1).toString());
+        tmap = (JSONObject) dev_list.get(map.getString("pid"));
+        log.info(tmap.toJSONString());
         try {
             timevalid = Integer.parseInt(map.get("tvalid").toString());
         } catch (Exception e) {
             timevalid = 0;
         }
-
+        timevalid=1;
         if (timevalid == 1)  {
 
 
@@ -183,7 +191,7 @@ public final class anaUtil {
                         //开始计时
                        // ((HashMap<String, String>) objana_v.get(key)).put("timestat", "1");
 
-                        ((HashMap<String, String>) objana_v.get(key)).put("tcheck", rnow);
+                        ((JSONObject) objana_v.get(key)).put("tcheck", rnow);
                         add_red("UPDATE " + dbname + " SET timestat=1 ,checktime='" + rnow + "' where saveno="+map.get("saveno").toString());
                         // log.warn("UPDATE " + dbname + " SET timestat=1 ,checktime='" + rnow + "' where kkey='" + key + "'");
                     }
@@ -203,10 +211,10 @@ public final class anaUtil {
                         float tot = minutes / 60.00f + Float.parseFloat(tmap.get("runtime").toString());
                         //log.warn(df3.format(Date2)+","+df3.format(toDate2)+","+hours);
                        // ((HashMap<String, String>) objana_v.get(key)).put("timestat", "0");
-                        ((HashMap<String, String>) dev_list.get(map.get("pid").toString())).put("runtime", "" + tot);
+                        ((JSONObject) dev_list.get(map.get("pid").toString())).put("runtime", "" + tot);
                         float tot2 = minutes / 60.00f + Float.parseFloat(map.get("warnline").toString());
                         //((HashMap<String, String>) objana_v.get(key)).put("warnline", "" + tot2);
-                        ((HashMap<String, String>) objana_v.get(key)).put("tcheck", rnow);
+                        ((JSONObject) objana_v.get(key)).put("tcheck", rnow);
 
                         //mjedis.set(key + ".mtot", String.valueOf(tot));
                         //mjedis.set(key + ".ytot", String.valueOf(tot2));
@@ -226,13 +234,23 @@ public final class anaUtil {
 
         }
 
-    public static void handleMessage( String message ) {
+    public  void handleMessage( String message ) {
         String val=null,pmessage=null;
+        Jedis tjedis= JedisUtil.getInstance().getJedis();
         if (!Objects.nonNull(tjedis)) {
             log.info(message);
         }
 
+       /* if (Objects.nonNull(helloService)) {
+            log.info("开始读取ana内容.......");
+            try {
+                objana_v = JSONObject.parseObject(helloService.selectAllData().toString().replace("[", "{").replace("]", "}"));
 
+                log.warn(objana_v.toString());
+            } catch (Exception e) {
+                log.error("objana_v 初始化异常   " + e.toString() + "   " + helloService.selectAllDev().toString().replace("[", "{").replace("]", "}"));
+            }
+        }*/
         if (objana_v.containsKey(message)) {
 
             try {
@@ -246,10 +264,11 @@ public final class anaUtil {
                 // e.printStackTrace();
             }
 
-
+            log.info(message+"  :  "+val);
             pmessage = message;//.replace("_.value","");
             try {
-                if ((long) ((HashMap<String, Object>) objana_v.get(pmessage)).get("type") == 1 ) {
+                if ((int) ((JSONObject) objana_v.get(pmessage)).get("type") == 1 ) {
+                    //log.info(message);
                     handleTime(pmessage, val);
 
                     //handleMaxMin(pmessage, val, tjedis);
@@ -260,7 +279,7 @@ public final class anaUtil {
                 }
                 //handleEvt(pmessage,val);
             } catch (Exception e) {
-                //   log.error(e.toString()+"=====>"+pmessage);
+                  log.error(e.toString()+"=====>"+pmessage);
             }
         }
         else if (message.matches("anaupdate")) {
@@ -315,7 +334,7 @@ public final class anaUtil {
         pmessage=null;
 
 
-
+        JedisUtil.getInstance().returnJedis(tjedis);
 
 
     }

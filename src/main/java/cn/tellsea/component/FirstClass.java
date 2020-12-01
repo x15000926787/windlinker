@@ -23,15 +23,17 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 @WebListener
-public final class FirstClass implements ServletContextListener {
-    public static ThreadPoolExecutor redis_executor = null;
+public class FirstClass implements ServletContextListener {
+    public  ThreadPoolExecutor redis_executor = null;
 
     @Autowired
-    public static HelloService helloService;
+    public  HelloService helloService;
     @Autowired
-    public static RedisService tjedis;
+    public  RedisService tjedis;
     public FirstClass() {
         //log.info("firstclass");
+        if (Objects.nonNull(helloService)) System.out.println("firstclass helloService");
+        if (Objects.nonNull(tjedis)) System.out.println("firstclass tjedis");
         redis_executor = new ThreadPoolExecutor(20, 40, 60000L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(), Executors.defaultThreadFactory(), new ThreadPoolExecutor.DiscardOldestPolicy());
         redis_executor.allowCoreThreadTimeOut(true);
 
