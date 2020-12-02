@@ -19,6 +19,23 @@ public interface HelloMapper {
     @Select("SELECT * FROM hello WHERE id=#{id}")
     HelloModel select(int id);
 
+    // 查询运行时间最短设备
+
+    /**
+     * select  *
+     * from (select * from devlist as a
+     *                            where  runtime=(select min(b.runtime)
+     *                                               from devlist as b
+     *                                               where a.type = b.type and a.run=b.run and a.status=b.status and a.error=b.error and a.type=2 and a.run=0 and a.error=0 and a.status=0
+     *                                              )
+     *      ) as a
+     * group by type
+     * @param type
+     * @return
+     */
+    @Select("SELECT * FROM devlist WHERE id=#{id}")
+    DevList selectdev(int type);
+
     // 查询全部
     @Select("SELECT * FROM hello")
     List<HelloModel> selectAll();
@@ -31,7 +48,17 @@ public interface HelloMapper {
     @Select("SELECT * FROM datalist")
     List<DataList> selectAllData();
 
-    // 更新 value
+    /**
+     * 更新 datalist_time
+      */
+
+    @Update("UPDATE datalist SET tstatus=#{tstatus},tcheck=#{tcheck} WHERE kkey=#{kkey}")
+    int updateTime(DataList data);
+
+    @Update("UPDATE devlist SET runtime=#{runtime} WHERE id=#{id}")
+    int updateDevTime(DevList data);
+
+    /** 更新 value*/
     @Update("UPDATE hello SET value=#{value} WHERE id=#{id}")
     int updateValue(HelloModel model);
 

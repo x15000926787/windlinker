@@ -19,6 +19,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -149,31 +150,33 @@ public  class anaUtil {
         String s = null;
         //SimpleDateFormat df,df2,df3;
         LocalDateTime rightnow = LocalDateTime.now();
+        log.info(rightnow.toString());
         char[] ss = null;
         JSONObject tmap = new JSONObject();
 
-        String rnow = rightnow.format(formatter);
+        long rnow = rightnow.toInstant(ZoneOffset.of("+8")).toEpochMilli();
 
         JSONObject map = new JSONObject();
 
         // df3 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
-
+        //log.info(key);
 
         int vv = -2;
         int timevalid = 0;
         //
-
+       //if (Objects.nonNull(helloService)) log.info(dev_list.toString());
         map = (JSONObject) objana_v.get(key);
-        log.info(dev_list.toString());
-        log.info(dev_list.get(1).toString());
-        tmap = (JSONObject) dev_list.get(map.getString("pid"));
-        log.info(tmap.toJSONString());
+        DataList obj = null;//(json,Student.class);
+        DevList dev = null;
+        //log.info(dev_list.get(1).toString());
+        tmap = (JSONObject) dev_list.get(map.get("pid"));
+       // log.info(tmap.toJSONString());
         try {
             timevalid = Integer.parseInt(map.get("tvalid").toString());
         } catch (Exception e) {
             timevalid = 0;
         }
-        timevalid=1;
+        //timevalid=1;
         if (timevalid == 1)  {
 
 
@@ -183,45 +186,51 @@ public  class anaUtil {
 
 
                     dbname = "devlist";
-
+           // log.warn(map.get("tstatus").toString());
                 if (Integer.parseInt(vals)==1) {
-                    //if (Integer.parseInt(map.get("timestat").toString()) == 0) 
-                    // {
-                        log.warn(key + " 开始计时 ");
-                        //开始计时
-                       // ((HashMap<String, String>) objana_v.get(key)).put("timestat", "1");
 
-                        ((JSONObject) objana_v.get(key)).put("tcheck", rnow);
-                        add_red("UPDATE " + dbname + " SET timestat=1 ,checktime='" + rnow + "' where saveno="+map.get("saveno").toString());
-                        // log.warn("UPDATE " + dbname + " SET timestat=1 ,checktime='" + rnow + "' where kkey='" + key + "'");
+                        if (map.get("tstatus").toString().matches("0")) {
+                            log.warn(key + " 开始计时 ");
+                            //开始计时
+                            // ((HashMap<String, String>) objana_v.get(key)).put("timestat", "1");
+                            ((JSONObject) objana_v.get(key)).put("tstatus", "1");
+                            ((JSONObject) objana_v.get(key)).put("tcheck", rnow);
+                            obj = JSONObject.toJavaObject((JSONObject)objana_v.get(key),DataList.class);
+                            helloService.updateTime(obj);
+                            //add_red("UPDATE datalist SET tstatus=1 ,tcheck='" + rnow + "' where kkey='" + key + "'");
+                            // log.warn("UPDATE " + dbname + " SET timestat=1 ,checktime='" + rnow + "' where kkey='" + key + "'");
+                        }
                     }
                  else
                     {
-                    //if (Integer.parseInt(map.get("timestat").toString()) == 1)
+                    if (map.get("tstatus").toString().matches("1") )
                      {
                         //停止计时
 
                         log.warn(key + " 停止计时 ");
                         //LocalDateTime Date2 = LocalDateTime.now();
-                        LocalDateTime to2 = LocalDateTime.parse(map.get("tcheck").toString(), formatter);
-                        Duration duration = Duration.between(to2, rightnow);
+                        LocalDateTime to2 = new Date((long)map.get("tcheck")).toInstant().atOffset(ZoneOffset.of("+8")).toLocalDateTime();//LocalDateTime.ofEpochSecond((long)map.get("tcheck"),0, ZoneOffset.ofHours(8));//LocalDateTime.parse(.toString(), formatter);
+                        log.info(to2.toString());
+                         Duration duration = Duration.between(to2, rightnow);
+                         log.info(duration.toString());
                         //相差的分钟数
                         long minutes = duration.toMinutes();
                         //float hours =  ((rightnow.get - to2) / (1000.00f * 60 * 60));
                         float tot = minutes / 60.00f + Float.parseFloat(tmap.get("runtime").toString());
                         //log.warn(df3.format(Date2)+","+df3.format(toDate2)+","+hours);
                        // ((HashMap<String, String>) objana_v.get(key)).put("timestat", "0");
-                        ((JSONObject) dev_list.get(map.get("pid").toString())).put("runtime", "" + tot);
-                        float tot2 = minutes / 60.00f + Float.parseFloat(map.get("warnline").toString());
-                        //((HashMap<String, String>) objana_v.get(key)).put("warnline", "" + tot2);
+                        ((JSONObject) dev_list.get(map.get("pid"))).put("runtime", "" + tot);
+                         ((JSONObject) objana_v.get(key)).put("tstatus", "0");
                         ((JSONObject) objana_v.get(key)).put("tcheck", rnow);
 
                         //mjedis.set(key + ".mtot", String.valueOf(tot));
                         //mjedis.set(key + ".ytot", String.valueOf(tot2));
 
-                        add_red("UPDATE " + dbname + " SET timestat=0 ,checktime='" + rnow + "',online=" + tot + ",warnline=" + tot2 + " where saveno="+map.get("saveno").toString());
-
-
+                        //add_red("UPDATE datalist SET tstatus=0 ,tcheck='" + rnow + "',runtime=" + tot + " where kkey='" + key + "'");
+                         obj = JSONObject.toJavaObject((JSONObject)objana_v.get(key),DataList.class);
+                         helloService.updateTime(obj);
+                         dev = JSONObject.toJavaObject((JSONObject)dev_list.get(map.get("pid")),DevList.class);
+                         helloService.updateDevTime(dev);
 
 
                     }
@@ -237,9 +246,8 @@ public  class anaUtil {
     public  void handleMessage( String message ) {
         String val=null,pmessage=null;
         Jedis tjedis= JedisUtil.getInstance().getJedis();
-        if (!Objects.nonNull(tjedis)) {
-            log.info(message);
-        }
+
+
 
        /* if (Objects.nonNull(helloService)) {
             log.info("开始读取ana内容.......");
@@ -252,7 +260,7 @@ public  class anaUtil {
             }
         }*/
         if (objana_v.containsKey(message)) {
-
+           // log.info(message);
             try {
 
                 val = tjedis.get(message);
@@ -264,7 +272,7 @@ public  class anaUtil {
                 // e.printStackTrace();
             }
 
-            log.info(message+"  :  "+val);
+//            log.info(message+"  :  "+val);
             pmessage = message;//.replace("_.value","");
             try {
                 if ((int) ((JSONObject) objana_v.get(pmessage)).get("type") == 1 ) {

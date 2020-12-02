@@ -32,6 +32,12 @@ public class HelloService {
 
         return dao.selectAll();
     }
+    public boolean updateTime(DataList data) {
+        return dao.updateTime(data) > 0;
+    }
+    public boolean updateDevTime(DevList data) {
+        return dao.updateDevTime(data) > 0;
+    }
 
     public boolean updateValue(HelloModel model) {
         return dao.updateValue(model) > 0;

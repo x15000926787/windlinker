@@ -1,11 +1,11 @@
 package cn.tellsea.Model;
 
 public class DevList {
-    public long getStatus() {
+    public int getStatus() {
         return status;
     }
 
-    public void setStatus(long status) {
+    public void setStatus(int status) {
         this.status = status;
     }
 
@@ -42,22 +42,38 @@ public class DevList {
         this.devname = devname;
     }
 
+    public int getRun() {
+        return run;
+    }
 
+    public void setRun(int run) {
+        this.run = run;
+    }
+
+    public int getError() {
+        return error;
+    }
+
+    public void setError(int error) {
+        this.error = error;
+    }
 
     public void setId(long id) {
         this.id = id;
     }
 
-    public long getType() {
+    public int getType() {
         return type;
     }
 
-    public void setType(long type) {
+    public void setType(int type) {
         this.type = type;
     }
 
-    public long type;
-    public long status;
+    public int type;
+    public int run;
+    public int error;
+    public int status;
     public double runtime;
     public  String devname;
 

@@ -6,6 +6,7 @@ import cn.tellsea.component.FirstClass;
 import cn.tellsea.service.HelloService;
 import cn.tellsea.service.RedisService;
 import cn.tellsea.utils.anaUtil;
+import cn.tellsea.utils.jdbcUtil;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +14,9 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.jdbc.support.JdbcUtils;
 
+import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -43,6 +46,8 @@ public class SpringbootTaskApplication implements CommandLineRunner {
 
     /*@Autowired
     NettyConfig nettyConfig;*/
+    /*@Autowired
+    private jdbcUtil jdbcutil;*/
     @Autowired
     private HelloService helloService;
     @Autowired
@@ -71,7 +76,7 @@ public class SpringbootTaskApplication implements CommandLineRunner {
      * 初始化信息
      */
     @SuppressWarnings("unused")
-    private void init() {
+    private void init() throws SQLException {
 
        // Consts.SERVER_PORT = nettyConfig.getPort();
        // Consts.MODULE_TYPE = nettyConfig.getModuleType();
@@ -99,7 +104,19 @@ public class SpringbootTaskApplication implements CommandLineRunner {
         }else
             log.error("helloService error");
 
-        log.info(redisService.get("ai_23"));
+        //log.info(redisService.get("ai_23"));
+        try {
+            jdbcUtil.connection=jdbcUtil.getConnection();
+        }catch(Exception e)
+        {
+            log.info("mysql connect error!");
+        }
+
+        if (Objects.nonNull(jdbcUtil.connection))
+        {
+            log.info(jdbcUtil.findSimpleResult("select * from prtu where rtuno=1",null).toString());
+        }
+
         log.info("应用初始化完成");
     }
 }

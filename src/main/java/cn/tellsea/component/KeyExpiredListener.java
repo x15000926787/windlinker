@@ -61,7 +61,7 @@ public class KeyExpiredListener  implements MessageListener {
 
 
 
-                 log.info(new String(body));
+                // log.info(new String(body));
 
                  //log.info(anaUtil.objana_v.toJSONString());
                 {

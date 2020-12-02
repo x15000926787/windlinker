@@ -1,5 +1,6 @@
 package cn.tellsea.Model;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 
 public class DataList {
@@ -38,20 +39,20 @@ public class DataList {
         this.name = name;
     }
 
-    public long getType() {
+    public int getType() {
         return type;
     }
 
-    public void setType(long type) {
+    public void setType(int type) {
         this.type = type;
     }
 
 
-    public Date getTcheck() {
+    public long getTcheck() {
         return tcheck;
     }
 
-    public void setTcheck(Date tcheck) {
+    public void setTcheck(long tcheck) {
         this.tcheck = tcheck;
     }
 
@@ -73,18 +74,29 @@ public class DataList {
 
     public String kkey;
     public String name;
-    public long type;
+    public int type;
 
-    public long getTvalid() {
+    public int getTvalid() {
         return tvalid;
     }
 
-    public void setTvalid(long tvalid) {
+    public void setTvalid(int tvalid) {
         this.tvalid = tvalid;
     }
 
-    public long tvalid;
-    public Date tcheck;
+    public int tvalid;
+
+
+
+    public int tstatus;
+    public int getTstatus() {
+        return tstatus;
+    }
+
+    public void setTstatus(int tstatus) {
+        this.tstatus = tstatus;
+    }
+    public long tcheck;
     public double uplimit;
     public double lowerlimit;
 
@@ -97,6 +109,7 @@ public class DataList {
                 ", name:'" + name + '\'' +
                 ", type:" + type +
                 ", tvalid:" + tvalid +
+                ", tstatus:" + tstatus +
                 ", tcheck:" + tcheck +
                 ", uplimit:" + uplimit +
                 ", lowerlimit:" + lowerlimit +
