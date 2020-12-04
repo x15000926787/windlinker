@@ -86,7 +86,13 @@ public class DataList {
 
     public int tvalid;
 
+    public double getValue() {
+        return value;
+    }
 
+    public void setValue(double value) {
+        this.value = value;
+    }
 
     public int tstatus;
     public int getTstatus() {
@@ -99,7 +105,7 @@ public class DataList {
     public long tcheck;
     public double uplimit;
     public double lowerlimit;
-
+    public double value;
     @Override
     public String toString() {
         return "'"+kkey+"':{" +
@@ -113,6 +119,7 @@ public class DataList {
                 ", tcheck:" + tcheck +
                 ", uplimit:" + uplimit +
                 ", lowerlimit:" + lowerlimit +
+                ", value:" + value +
                 '}';
     }
 }

@@ -1,29 +1,29 @@
 package cn.tellsea;
 
 
-import cn.tellsea.Model.DevList;
+
 import cn.tellsea.component.FirstClass;
+
+import cn.tellsea.quartz.LuaJob;
+import cn.tellsea.quartz.QuartzJob;
+import cn.tellsea.quartz.QuartzManager;
+
+
 import cn.tellsea.service.HelloService;
 import cn.tellsea.service.RedisService;
+import cn.tellsea.task.UpdateDataJob;
 import cn.tellsea.utils.anaUtil;
 import cn.tellsea.utils.jdbcUtil;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.WebApplicationType;
+
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
-import org.springframework.jdbc.support.JdbcUtils;
 
 import java.sql.SQLException;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
 
 
 /*@SpringBootApplication
@@ -46,8 +46,8 @@ public class SpringbootTaskApplication implements CommandLineRunner {
 
     /*@Autowired
     NettyConfig nettyConfig;*/
-    /*@Autowired
-    private jdbcUtil jdbcutil;*/
+    @Autowired
+    private jdbcUtil jdbcutil;
     @Autowired
     private HelloService helloService;
     @Autowired
@@ -56,6 +56,9 @@ public class SpringbootTaskApplication implements CommandLineRunner {
     private FirstClass firstClass;
     @Autowired
     private  anaUtil anautil;
+    @Autowired
+    private UpdateDataJob updateDataJob;
+
     public static void main(String[] args) {
         new SpringApplicationBuilder(SpringbootTaskApplication.class).run(args);
               //  .web(WebApplicationType.NONE)
@@ -78,8 +81,26 @@ public class SpringbootTaskApplication implements CommandLineRunner {
     @SuppressWarnings("unused")
     private void init() throws SQLException {
 
-       // Consts.SERVER_PORT = nettyConfig.getPort();
-       // Consts.MODULE_TYPE = nettyConfig.getModuleType();
+
+        /**********************同步mysql****************/
+        try {
+            jdbcutil.getConnection();
+        }catch(Exception e)
+        {
+            log.info("mysql connect error!");
+        }
+
+        if (Objects.nonNull(jdbcutil.connection))
+        {
+
+            log.info(jdbcutil.findSimpleResult("select * from prtu where rtuno=1",null).toString());
+            jdbcutil.releaseConn();
+        }else
+        {
+            log.info("mysql 无法连接，使用本地配置信息。");
+        }
+
+        /**********************读取本地jsonobject************/
         if (Objects.nonNull(helloService))
         {
 
@@ -98,23 +119,46 @@ public class SpringbootTaskApplication implements CommandLineRunner {
                 log.warn(anautil.dev_list.toString());
             }catch (Exception e)
             {
-                log.error("objana_v 初始化异常   "+e.toString()+"   "+helloService.selectAllDev().toString().replace("[","{").replace("]","}"));
+                log.error("dev_list 初始化异常   "+e.toString()+"   "+helloService.selectAllDev().toString().replace("[","{").replace("]","}"));
             }
 
         }else
             log.error("helloService error");
 
         //log.info(redisService.get("ai_23"));
-        try {
-            jdbcUtil.connection=jdbcUtil.getConnection();
-        }catch(Exception e)
-        {
-            log.info("mysql connect error!");
-        }
 
-        if (Objects.nonNull(jdbcUtil.connection))
-        {
-            log.info(jdbcUtil.findSimpleResult("select * from prtu where rtuno=1",null).toString());
+
+        /***********************刷新实时数据******************/
+        firstClass.redis_executor.execute(updateDataJob);
+
+
+        /**********************开启定时任务*******************/
+        String sql = "select * from timetask where type=1";
+        List<Map<String, Object>> tasktype1 = new ArrayList<>();
+        try {
+            tasktype1 = jdbcutil.findModeResult(sql,null);
+            for (Map<String, Object> tmap : tasktype1) {
+
+
+                switch (((Integer)tmap.get("type")).intValue()) {
+                    case 1:
+                        QuartzManager.addJob("qjob" + tmap.get("id"), QuartzJob.class, tmap.get("cronstr").toString());
+                        log.warn("定时ao/do任务:" + tmap.get("cronstr").toString() + tmap.toString());
+                        break;
+                    case 2:
+                       HashMap fmap = new HashMap<>();
+                        //logger.warn("存储5分钟历史数据任务:" + tmap.get("cronstr").toString());
+                        fmap.put("luaname", tmap.get("luaname").toString());
+                        log.warn("定时脚本任务:" + tmap.get("cronstr").toString() + fmap.toString());
+                        QuartzManager.addJob("ljob" + tmap.get("id").toString(), LuaJob.class, tmap.get("cronstr").toString(), fmap);
+                        break;
+
+
+
+                }
+            }
+        } catch (Exception e) {
+            log.error("生成定时任务出错了" + e.toString());
         }
 
         log.info("应用初始化完成");

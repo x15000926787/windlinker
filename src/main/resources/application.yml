@@ -22,6 +22,6 @@ spring:
   datasource:
     driver-class-name: org.sqlite.JDBC
     url: jdbc:sqlite:/Users/xuxu/Downloads/windlinker/src/main/db/myDb
-    #url: jdbc:sqlite:/Volumes/app/windlinker/src/main/db/myDb
+    #url: jdbc:sqlite:/Users/xuxu/Downloads/windlinker-master/src/main/db/myDb
     username: root
     password: root

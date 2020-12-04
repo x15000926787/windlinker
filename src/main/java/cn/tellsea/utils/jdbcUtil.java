@@ -11,11 +11,13 @@ package cn.tellsea.utils;
  */
 
 
+import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import com.mysql.cj.jdbc.Driver;
+import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -35,47 +37,52 @@ import java.util.Map;
 @Component
 final public class jdbcUtil {
     @Value("${mysql.ip}")
-    public static  String IP;//=PropertyUtil.getProperty("db3rd_ip","10.15.7.25");
+    public   String IP;//=PropertyUtil.getProperty("db3rd_ip","10.15.7.25");
     //数据库用户名
     @Value("${mysql.username}")
-    public static  String USERNAME;// = PropertyUtil.getProperty("db3rd_user","root");
+    public   String USERNAME;// = PropertyUtil.getProperty("db3rd_user","root");
 
     //数据库用户名
     @Value("${mysql.dbname}")
-    public static  String dbname;// = PropertyUtil.getProperty("db3rd_dbname","energy");
+    public   String dbname;// = PropertyUtil.getProperty("db3rd_dbname","energy");
 
     //数据库密码
     @Value("${mysql.password}")
-    public  static String PASSWORD;//= PropertyUtil.getProperty("db3rd_pwd","root");
+    public   String PASSWORD;//= PropertyUtil.getProperty("db3rd_pwd","root");
     //驱动信息
     @Value("${mysql.driver}")
-    public static  String DRIVER;// = "com.mysql.jdbc.Driver";
+    public  String DRIVER;// = "com.mysql.jdbc.Driver";
     //数据库地址
-    public  static String URL = "jdbc:mysql://"+IP+":3306/"+dbname;
-    public static Connection connection;
-    public static PreparedStatement pstmt;
-    public static ResultSet resultSet;
+    public   String URL = "jdbc:mysql://"+IP+":3306/"+dbname;
+
+    public  Connection connection;
+    public  PreparedStatement pstmt;
+    public  ResultSet resultSet;
 
 
     /**
      * 获得数据库的连接
      * @return
      */
-    public static Connection getConnection(){
+    public  Connection getConnection(){
         try{
-
-            Class.forName(DRIVER);
+            //System.out.println(DRIVER);
+            URL = "jdbc:mysql://"+IP+":3306/"+dbname+"?serverTimezone=GMT%2B8&useSSL=false&connectTimeout=3000&socketTimeout=60000";
             try {
-                connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
+                //connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
+                Class.forName(DRIVER);
+                 connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
+                log.info("数据库连接成功！");
             } catch (SQLException e) {
+                log.info(e.toString());
                 // TODO Auto-generated catch block
-                e.printStackTrace();
+                //e.printStackTrace();
             }
-            System.out.println("数据库连接成功！");
+
 
         }catch(Exception e){
             log.info(e.toString());
-            e.printStackTrace();
+            //e.printStackTrace();
         }
 
         return connection;
@@ -89,7 +96,7 @@ final public class jdbcUtil {
      * @return
      * @throws SQLException
      */
-    public static boolean updateByPreparedStatement(String sql, List<Object>params)throws SQLException{
+    public  boolean updateByPreparedStatement(String sql, List<Object>params)throws SQLException{
         boolean flag = false;
         int result = -1;
         pstmt = connection.prepareStatement(sql);
@@ -111,7 +118,7 @@ final public class jdbcUtil {
      * @return
      * @throws SQLException
      */
-    public static Map<String, Object> findSimpleResult(String sql, List<Object> params) throws SQLException{
+    public  Map<String, Object> findSimpleResult(String sql, List<Object> params) throws SQLException{
         Map<String, Object> map = new HashMap<String, Object>();
         int index  = 1;
         pstmt = connection.prepareStatement(sql);
@@ -142,7 +149,7 @@ final public class jdbcUtil {
      * @return
      * @throws SQLException
      */
-    public static List<Map<String, Object>> findModeResult(String sql, List<Object> params) throws SQLException{
+    public  List<Map<String, Object>> findModeResult(String sql, List<Object> params) throws SQLException{
         List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
         int index = 1;
         pstmt = connection.prepareStatement(sql);
@@ -177,7 +184,7 @@ final public class jdbcUtil {
      * @return
      * @throws Exception
      */
-    public static <T> T findSimpleRefResult(String sql, List<Object> params,
+    public  <T> T findSimpleRefResult(String sql, List<Object> params,
                                             Class<T> cls )throws Exception{
         T resultObject = null;
         int index = 1;
@@ -215,7 +222,7 @@ final public class jdbcUtil {
      * @return
      * @throws Exception
      */
-    public static <T> List<T> findMoreRefResult(String sql, List<Object> params,
+    public  <T> List<T> findMoreRefResult(String sql, List<Object> params,
                                                 Class<T> cls )throws Exception {
         List<T> list = new ArrayList<T>();
         int index = 1;
@@ -249,12 +256,13 @@ final public class jdbcUtil {
     /**
      * 释放数据库连接
      */
-    public static void releaseConn() throws SQLException{
+    public  void releaseConn() throws SQLException{
         if (!connection.isClosed())
         {
             try{
                 connection.close();
             }catch(SQLException e){
+                log.info("1");
                 e.printStackTrace();
             }
         }
@@ -262,6 +270,7 @@ final public class jdbcUtil {
             try{
                 resultSet.close();
             }catch(SQLException e){
+                log.info("2");
                 e.printStackTrace();
             }
         }

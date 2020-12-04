@@ -68,6 +68,7 @@ public interface RedisService {
      */
     Boolean hmset(String key, JSONObject value);
 
+
     /**
      * 删除key
      *
