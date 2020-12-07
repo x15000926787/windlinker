@@ -1,15 +1,15 @@
 spring:
   redis:
-    database: 0
+    database: 11
     host: 58.247.132.78
     port: 6389
     password: Shcs123
-    timeout: 2000
+    timeout: 8000
   jedis:
     host: 58.247.132.78
     password: Shcs123
     port: 6389
-    timeout: 2000
+    timeout: 8000
     maxTotal: 15 # 最大连接数
     maxIdle: 10 # 最大空闲连接
     minIdle: 5 # 最小空闲连接

@@ -2,25 +2,21 @@ package cn.tellsea.quartz;
 
 
 import cn.tellsea.Model.TimeTask_Detial;
-import cn.tellsea.component.FirstClass;
 import cn.tellsea.component.SpringUtil;
 import cn.tellsea.service.HelloService;
 import cn.tellsea.service.RedisService;
-import cn.tellsea.utils.JedisUtil;
-import cn.tellsea.utils.anaUtil;
-import cn.tellsea.utils.jdbcUtil;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.quartz.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
-import javax.annotation.Resource;
 import java.sql.SQLException;
-import java.util.*;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * [任务类]
@@ -31,16 +27,16 @@ import java.util.*;
 @Slf4j
 @PersistJobDataAfterExecution
 @DisallowConcurrentExecution
-public  class QuartzJob implements Job {
+public  class keepaliveJob implements Job {
 
 
-	private HelloService helloService;
+
 
 	private RedisService redisService;
 
 
 	String message = "J{" +"\"h\":{" +"\"rt\":\"skey\"" +"}," +"\"b\":{" +"\"dl\":{" +"\"ekey\":tval" +"}" +"}" +"}";
-	   private static final Logger logger = LogManager.getLogger(QuartzJob.class);
+	   private static final Logger logger = LogManager.getLogger(keepaliveJob.class);
 	   String s = null;
 	   int i=0;
 	      String vals = null;
@@ -51,11 +47,11 @@ public  class QuartzJob implements Job {
 	  //	DBConnection dbcon=null;//
 	  //	PreparedStatement pstmt=null;
 		//ResultSet rs;
-		
-		
-		
-		public QuartzJob() throws ClassNotFoundException {
-			helloService = (HelloService) SpringUtil.getBean(Class.forName("cn.tellsea.service.HelloService"));
+
+
+
+		public keepaliveJob() throws ClassNotFoundException {
+
 			redisService = (RedisService) SpringUtil.getBean(Class.forName("cn.tellsea.service.RedisService"));
 			
 		}
@@ -67,7 +63,7 @@ public  class QuartzJob implements Job {
 
 		List<TimeTask_Detial> tasktype1 = null;//new ArrayList<Map<String, Object>>();
 
-		tasktype1= helloService.selectAllTimeTaskDetial(pid);
+
 		HashMap<String, String> tmap = new HashMap<String, String>();
 
 		int size=tasktype1.size() ;
@@ -90,32 +86,10 @@ public  class QuartzJob implements Job {
     @SneakyThrows
 	@Override
     public void execute(JobExecutionContext arg0) throws JobExecutionException {
-       //
 
-
-		//mqttService = (MqttService) (arg0.getJobDetail().getJobDataMap().get("mqtt"));
-
-    	HashMap<String, Integer> tidmap = (HashMap<String, Integer>) (arg0.getJobDetail().getJobDataMap().get("taskdetial"));
-		//logger.warn(tidmap.get("vv").toString());
-		HashMap<String, String> tmap = (HashMap<String, String>) get_timetask_detial(tidmap.get("vv"));
-    	/*Map tmap=new HashMap<String, String>();
-    	
-    	tmap=(Map<String, String>) (arg0.getJobDetail().getJobDataMap().get("taskdetial"));
-    	*/
 		try {
 
-
-
-			//                                                                                                                                                    if (Objects.nonNull(redisService)) log.info("dddd");
-			for (Object key:tmap.keySet()) {
-				vals = tmap.get((String) key);
-				redisService.set(key+"_.value",vals);
-				redisService.set(key+"_.status","1");
-				logger.warn("执行定时任务:  "+key+"  : "+vals);
-			}
-
-
-
+			redisService.set("windlinker", LocalDateTime.now().toString());
 
 		}
 
@@ -128,7 +102,7 @@ public  class QuartzJob implements Job {
     	
     	//tmap.clear();
     	//tmap=null;
-		logger.warn("执行定时任务:  QuartzJob done!");
+		//logger.warn("执行定时任务:  keepRedisAlive done!");
 
     }
     	

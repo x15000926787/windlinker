@@ -1469,7 +1469,7 @@ public class JedisUtil {
 
     public static void main(String[] args) {
         JedisUtil jedisUtil= JedisUtil.getInstance();
-        JedisUtil.Strings strings=jedisUtil.new Strings();
+        Strings strings=jedisUtil.new Strings();
         strings.set("nnn", "nnnn");
         System.out.println("-----"+strings.get("nnn"));
 

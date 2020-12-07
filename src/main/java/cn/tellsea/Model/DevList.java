@@ -9,20 +9,26 @@ public class DevList {
         this.status = status;
     }
 
-    private long id;
+    private int id;
 
     @Override
     public String toString() {
         return id+":{" +
-                "id:" + id +
+
+                ", devname:'" + devname + '\'' +
                 ", type:" + type +
+                ", run:" + run +
+                ", error:" + error +
+                ", valid:" + valid +
                 ", status:" + status +
                 ", runtime:" + runtime +
-                ", devname:'" + devname + '\'' +
+                ", poweron:" + poweron +
+                ", poweroff:" + poweroff +
+                ", fresh:" + fresh +
                 '}';
     }
 
-    public long getId() {
+    public int getId() {
         return id;
     }
 
@@ -58,7 +64,7 @@ public class DevList {
         this.error = error;
     }
 
-    public void setId(long id) {
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -70,11 +76,57 @@ public class DevList {
         this.type = type;
     }
 
+    public int getValid() {
+        return valid;
+    }
+
+    public void setValid(int valid) {
+        this.valid = valid;
+    }
+
     public int type;
+    //启停
     public int run;
+    //故障
     public int error;
+    //手自动
     public int status;
+    //可用
+    public int valid;
+
+
+
+    public int getFresh() {
+        return fresh;
+    }
+
+    public void setFresh(int fresh) {
+        this.fresh = fresh;
+    }
+
     public double runtime;
     public  String devname;
+
+    public int getPoweron() {
+        return poweron;
+    }
+
+    public void setPoweron(int poweron) {
+        this.poweron = poweron;
+    }
+
+    public int getPoweroff() {
+        return poweroff;
+    }
+
+    public void setPoweroff(int poweroff) {
+        this.poweroff = poweroff;
+    }
+
+    public int poweron;
+    public int poweroff;
+    public int fresh;
+
+
 
 }

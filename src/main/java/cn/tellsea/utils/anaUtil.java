@@ -1,28 +1,34 @@
 package cn.tellsea.utils;
 
-import cn.tellsea.Model.DataList;
-import cn.tellsea.Model.DevList;
-import cn.tellsea.Model.HelloModel;
+import cn.tellsea.Model.*;
 import cn.tellsea.service.HelloService;
 import cn.tellsea.service.RedisService;
 import cn.tellsea.service.impl.RedisServiceImpl;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
+import org.quartz.TriggerUtils;
+import org.quartz.impl.triggers.CronTriggerImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.support.CronSequenceGenerator;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
 
+import javax.rmi.CORBA.Util;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Pattern;
+
+import static java.lang.Thread.sleep;
 
 @Slf4j
 @Component
@@ -36,26 +42,19 @@ public  class anaUtil {
     public  JSONObject objana_v = new JSONObject();
 
     public  JSONObject dev_list = new JSONObject();
-    public  JSONObject msg_author = new JSONObject();
-    public  JSONObject objcondition = new JSONObject();
-    public  JSONObject online_warn = new JSONObject();
-    public  JSONObject ana_fullname = new JSONObject();
 
-    public  JSONArray dn_array = new JSONArray();
-    public  HashMap<String,String> saveno_kkey = new HashMap<>();
+    public  JSONObject key_id = new JSONObject();
+
 
     public  ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
     public  ScriptEngine scriptEngine = scriptEngineManager.getEngineByName("nashorn");
-    //private  final String projectName = "【"+PropertyUtil.getProperty("project_name")+"】";
-    //private  final int user_divide = Integer.parseInt(PropertyUtil.getProperty("user_divide","0"));           //默认用户不分组
-    // public  LocalDateTime rightnow = null;
-    public  DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    public  DateTimeFormatter ymd = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    public    String s= null;
-    //public anaUtil()
-    //{
-       // tjedis=new RedisServiceImpl();
-    //}
+
+    public  static  int process= -1;
+    public  static  int step= -1;
+    public  static  int zhjno= -1;
+    public  static  int ldbpqno= -1;
+    public  static  int lqbpqno= -1;
+
     public  boolean isDoubleOrFloat(String str) {
         if (null == str || "".equals(str)) {
             return false;
@@ -94,7 +93,130 @@ public  class anaUtil {
         }
         return Logs;
     }*/
+/**
+ * 执行Action
+ */
+    public  void  dostep(ActionDetial actionDetial) throws InterruptedException {
+        DevList tdev = null;
+        DataList tdata = null;
+        /*查找目标设备id*/
+        int tid = 0;
+        String tkey = null;
 
+        switch (actionDetial.getTargettype()) {
+            case 1:
+                tid = zhjno;
+                break;
+            case 2:
+                tid = ldbpqno;
+                break;
+            case 3:
+                tid = lqbpqno;
+                break;
+            case 4:
+                tdev = helloService.selectDcfDev(1,4);
+                tid =  tdev.getId();
+                break;
+            case 5:
+                tdev = helloService.selectDcfDev(1,5);
+                tid =  tdev.getId();
+                break;
+            default:
+                tid = 0;
+                break;
+        }
+        log.info("step {} info : 目标设备 ID：{}  名称：{}",step,tid,tdev.getDevname());
+        /*查找目标设备控制键*/
+
+         tkey = helloService.selectcontrolkey(tid,1).getKkey();
+
+        log.info("step {} info : 目标控制键 {}",step,tkey);
+
+        if (tdev.fresh!=0)
+        {
+            log.info("step {} info : 发送复位命令 {}",step,tdev.getFresh());
+            setRedisVal(tkey,String.valueOf(tdev.getFresh()));
+            sleep(3000);
+        }else
+        {
+            log.info("step {} info : 此设备无复位命令 ",step);
+        }
+
+        log.info("step {} info : 发送控制命令 ",step);
+        setRedisVal(tkey,String.valueOf(tdev.getFresh()));
+    }
+
+    /**
+     * 开启主机/增加主机
+     */
+    public  void  startZJ() throws InterruptedException {
+        DevList devList=null;
+        ActionDetial actionDetial=null;
+        log.info("开机程序启动......");
+        process = 1;
+        step = 1;
+        devList = helloService.selectdev(1);
+        zhjno = devList.getId();
+        log.info("找到运行时间最短主机id {}",devList.getDevname());
+        devList = helloService.selectdev(2);
+        ldbpqno = devList.getId();
+        log.info("找到运行时间最短冷冻变频器id {}",devList.getDevname());
+        devList = helloService.selectdev(3);
+        lqbpqno = devList.getId();
+        log.info("找到运行时间最短冷却变频器id {}",devList.getDevname());
+        actionDetial = helloService.selectnextprocess(process,step);
+        dostep(actionDetial);
+
+        //log.info("");
+    }
+    /**
+     * 自检
+     * @throws ParseException
+     * @throws InterruptedException
+     */
+    public  void init() throws ParseException, InterruptedException {
+        int cnt = 0,tid = 0;
+        String val = null;
+        List<TimeTask_Detial> tk_detial;
+        LocalDateTime tdate = LocalDateTime.now().minusDays(31);
+
+        LocalDateTime sdate;
+        List<TimeTask> ltask;
+        ltask =  helloService.selectofTimeTask(1);
+        for (TimeTask t : ltask) {
+            sdate = LocalDateUtil.dateToLocalDateTime(getcronstr_prv(t.getCronstr()));
+
+
+            if (sdate.isAfter(tdate)) {
+
+                tdate = sdate;
+                tid = t.getId();
+                val = t.getName();
+            }
+        }
+        log.info("最后一条定时开关机任务：{} {}",val,tdate.toString());
+        tk_detial = helloService.selectAllTimeTaskDetial(tid);
+        val = tk_detial.get(0).getVal();
+
+        cnt = helloService.selectdevruncount().size();
+        if (cnt==0)
+        {
+            log.info("当前没有主机在运行");
+            if (val.matches("1"))
+            {
+                log.info("根据定时任务 {} ,进入开机程序",tk_detial.get(0).getTaskid());
+                startZJ();
+            }
+
+        }else
+        {
+            log.info("当前有{}台主机在运行。",cnt);
+            if (val.matches("0"))
+            {
+                log.info("根据定时任务 {} ,进入关机程序",tk_detial.get(0).getTaskid());
+            }
+        }
+    };
     public    void loadAna_v(){
 
         log.info("开始读取ana内容.......");
@@ -107,6 +229,10 @@ public  class anaUtil {
             log.error("objana_v 初始化异常   "+e.toString()+"   "+helloService.selectAllDev().toString().replace("[","{").replace("]","}"));
         }
 
+        for(String str:objana_v.keySet()){
+            key_id.put(((JSONObject)objana_v.get(str)).getString("kkey"),str);
+        }
+        log.info(key_id.toJSONString());
 
     }
     public     void loadDevList(){
@@ -242,7 +368,20 @@ public  class anaUtil {
             }
 
         }
+    public  void setRedisVal(String kkey,String val)
+    {
+        Jedis tjedis= JedisUtil.getInstance().getJedis();
+        tjedis.set(kkey+"_.value",val);
+        tjedis.set(kkey+"_.status","1");
+        JedisUtil.getInstance().returnJedis(tjedis);
+    }
 
+    public  void setRedisProVal(String kkey,String val,int tt)
+    {
+        Jedis tjedis= JedisUtil.getInstance().getJedis();
+        tjedis.set(kkey,val,"NX","EX",tt);
+        JedisUtil.getInstance().returnJedis(tjedis);
+    }
     public  void handleMessage( String message ) {
         String val=null,pmessage=null;
         Jedis tjedis= JedisUtil.getInstance().getJedis();
@@ -276,14 +415,7 @@ public  class anaUtil {
             pmessage = message;//.replace("_.value","");
             try {
                 if ((int) ((JSONObject) objana_v.get(pmessage)).get("type") == 1 ) {
-                    //log.info(message);
                     handleTime(pmessage, val);
-
-                    //handleMaxMin(pmessage, val, tjedis);
-
-
-                    //只考虑遥测数据条件？？？
-                   // handleCondition(val, pmessage, tjedis);
                 }
                 //handleEvt(pmessage,val);
             } catch (Exception e) {
@@ -345,5 +477,44 @@ public  class anaUtil {
         JedisUtil.getInstance().returnJedis(tjedis);
 
 
+    }
+    public String getcronstr(String cron)  {
+        String jsonString="{\"result\":0}";
+        String ncron="";
+        Map<String,Object> map1 = new HashMap<String,Object>();
+        String[] croncnt=cron.split(" ");
+        ncron = croncnt[0];
+        for(int i=1;i<6;i++)
+            ncron =ncron +" "+ croncnt[i];
+        CronSequenceGenerator cronSequenceGenerator = new CronSequenceGenerator(ncron);
+
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+        List<String> list = new ArrayList<>(10);
+
+        Date nextTimePoint = new Date();
+        for (int i = 0; i < 10; i++) {
+            // 计算下次时间点的开始时间
+            nextTimePoint = cronSequenceGenerator.next(nextTimePoint);
+            list.add(sdf.format(nextTimePoint));
+        }
+        map1.put("data",list);
+        map1.put("result",1);
+        jsonString = JSONObject.toJSONString(map1);
+
+        return jsonString;
+    }
+    public Date getcronstr_prv(String cron)throws ParseException, InterruptedException  {
+
+
+        CronTriggerImpl cronTriggerImpl = new CronTriggerImpl();
+        cronTriggerImpl.setCronExpression(cron);//这里写要准备猜测的cron表达式
+        Calendar calendar = Calendar.getInstance();
+        Date now = calendar.getTime();
+        calendar.add(Calendar.DATE, -31);
+        List<Date> dates = TriggerUtils.computeFireTimesBetween(cronTriggerImpl, null, calendar.getTime(), now);//这个是重点，一行代码搞定~~
+
+        return dates.get(dates.size()-1);
     }
 }

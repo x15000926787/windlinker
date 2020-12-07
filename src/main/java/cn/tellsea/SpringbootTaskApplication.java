@@ -2,6 +2,7 @@ package cn.tellsea;
 
 
 
+import cn.tellsea.Model.TimeTask;
 import cn.tellsea.component.FirstClass;
 
 import cn.tellsea.quartz.LuaJob;
@@ -9,9 +10,11 @@ import cn.tellsea.quartz.QuartzJob;
 import cn.tellsea.quartz.QuartzManager;
 
 
+import cn.tellsea.quartz.keepaliveJob;
 import cn.tellsea.service.HelloService;
 import cn.tellsea.service.RedisService;
 import cn.tellsea.task.UpdateDataJob;
+import cn.tellsea.utils.JedisUtil;
 import cn.tellsea.utils.anaUtil;
 import cn.tellsea.utils.jdbcUtil;
 import com.alibaba.fastjson.JSONObject;
@@ -23,6 +26,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 
 import java.sql.SQLException;
+import java.text.ParseException;
 import java.util.*;
 
 
@@ -50,8 +54,8 @@ public class SpringbootTaskApplication implements CommandLineRunner {
     private jdbcUtil jdbcutil;
     @Autowired
     private HelloService helloService;
-    @Autowired
-    private RedisService redisService;
+    /*@Autowired
+    private RedisService redisService;*/
     @Autowired
     private FirstClass firstClass;
     @Autowired
@@ -79,7 +83,7 @@ public class SpringbootTaskApplication implements CommandLineRunner {
      * 初始化信息
      */
     @SuppressWarnings("unused")
-    private void init() throws SQLException {
+    private void init() throws SQLException, ParseException, InterruptedException {
 
 
         /**********************同步mysql****************/
@@ -104,23 +108,25 @@ public class SpringbootTaskApplication implements CommandLineRunner {
         if (Objects.nonNull(helloService))
         {
 
+            anautil.loadAna_v();
+            anautil.loadDevList();
+           /* try {
 
-            try {
                 anautil.objana_v = JSONObject.parseObject(helloService.selectAllData().toString().replace("[","{").replace("]","}"));
 
                 log.warn(anautil.objana_v.toString());
             }catch (Exception e)
             {
                 log.error("objana_v 初始化异常   "+e.toString()+"   "+helloService.selectAllDev().toString().replace("[","{").replace("]","}"));
-            }
-            try {
+            }*/
+            /*try {
                 anautil.dev_list = JSONObject.parseObject(helloService.selectAllDev().toString().replace("[","{").replace("]","}"));
 
                 log.warn(anautil.dev_list.toString());
             }catch (Exception e)
             {
                 log.error("dev_list 初始化异常   "+e.toString()+"   "+helloService.selectAllDev().toString().replace("[","{").replace("]","}"));
-            }
+            }*/
 
         }else
             log.error("helloService error");
@@ -130,27 +136,35 @@ public class SpringbootTaskApplication implements CommandLineRunner {
 
         /***********************刷新实时数据******************/
         firstClass.redis_executor.execute(updateDataJob);
-
+        QuartzManager.addJob("keepRedisAlive" , keepaliveJob.class, "0 * * * * ? *");
 
         /**********************开启定时任务*******************/
-        String sql = "select * from timetask where type=1";
-        List<Map<String, Object>> tasktype1 = new ArrayList<>();
+
+        List<TimeTask> tasktype1 =null; //helloService.selectAllTimeTask();
+
         try {
-            tasktype1 = jdbcutil.findModeResult(sql,null);
-            for (Map<String, Object> tmap : tasktype1) {
+            tasktype1 = helloService.selectAllTimeTask();
 
+            for (TimeTask tmap : tasktype1) {
 
-                switch (((Integer)tmap.get("type")).intValue()) {
+                Map<String, Integer> maps=new HashMap<>();
+                switch (((Integer)tmap.getType()).intValue()) {
                     case 1:
-                        QuartzManager.addJob("qjob" + tmap.get("id"), QuartzJob.class, tmap.get("cronstr").toString());
-                        log.warn("定时ao/do任务:" + tmap.get("cronstr").toString() + tmap.toString());
+                        maps.put("vv",(tmap.getId()));
+                        QuartzManager.addJob("qjob" + tmap.getId(), QuartzJob.class, tmap.getCronstr(),maps);
+                        log.warn("定时开关机任务 : {} {}", tmap.getCronstr() , tmap.getName());
                         break;
                     case 2:
+                        maps.put("vv",(tmap.getId()));
+                        QuartzManager.addJob("djob" + tmap.getId(), QuartzJob.class, tmap.getCronstr(),maps);
+                        log.warn("定时开关机任务 : {} {}", tmap.getCronstr() , tmap.getName());
+                        break;
+                    case 3:
                        HashMap fmap = new HashMap<>();
-                        //logger.warn("存储5分钟历史数据任务:" + tmap.get("cronstr").toString());
-                        fmap.put("luaname", tmap.get("luaname").toString());
-                        log.warn("定时脚本任务:" + tmap.get("cronstr").toString() + fmap.toString());
-                        QuartzManager.addJob("ljob" + tmap.get("id").toString(), LuaJob.class, tmap.get("cronstr").toString(), fmap);
+
+                        fmap.put("luaname", tmap.getLuaname());
+                        log.warn("定时脚本任务:" + tmap.getCronstr() + fmap.toString());
+                        QuartzManager.addJob("ljob" + tmap.getId(), LuaJob.class, tmap.getCronstr(), fmap);
                         break;
 
 
@@ -159,8 +173,10 @@ public class SpringbootTaskApplication implements CommandLineRunner {
             }
         } catch (Exception e) {
             log.error("生成定时任务出错了" + e.toString());
+            e.printStackTrace();
         }
-
+        JedisUtil.getInstance().getJedis().set("dd","1","NX","EX",10);
+        anautil.init();
         log.info("应用初始化完成");
     }
 }

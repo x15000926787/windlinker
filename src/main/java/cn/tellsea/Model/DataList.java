@@ -108,8 +108,8 @@ public class DataList {
     public double value;
     @Override
     public String toString() {
-        return "'"+kkey+"':{" +
-                "id:" + id +
+        return "'"+id+"':{" +
+
                 ", pid:" + pid +
                 ", kkey:'" + kkey + '\'' +
                 ", name:'" + name + '\'' +

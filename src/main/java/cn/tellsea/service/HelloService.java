@@ -1,9 +1,7 @@
 package cn.tellsea.service;
 
 import cn.tellsea.Mapper.HelloMapper;
-import cn.tellsea.Model.DataList;
-import cn.tellsea.Model.DevList;
-import cn.tellsea.Model.HelloModel;
+import cn.tellsea.Model.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,6 +30,18 @@ public class HelloService {
 
         return dao.selectAll();
     }
+    public  List<TimeTask> selectAllTimeTask() {
+
+        return dao.selectAllTimeTask();
+    }
+    public  List<TimeTask> selectofTimeTask(int tp) {
+
+        return dao.selectofTimeTask(tp);
+    }
+    public  List<TimeTask_Detial> selectAllTimeTaskDetial(int pid) {
+
+        return dao.selectAllTimeTaskDetial(pid);
+    }
     public boolean updateTime(DataList data) {
         return dao.updateTime(data) > 0;
     }
@@ -47,7 +57,21 @@ public class HelloService {
         return dao.delete(id) > 0;
     }
 
-
+    public  List<DevList> selectdevruncount() {
+        return dao.selectdevruncount();
+    }
+    public  DevList selectdev(int type) {
+        return dao.selectdev(type);
+    }
+    public  DataList selectcontrolkey(int pid,int type) {
+        return dao.selectControlKey(pid,type);
+    }
+    public  DevList selectDcfDev(int pid,int type) {
+        return dao.selectDcfDev(pid,type);
+    }
+    public  ActionDetial selectnextprocess(int p,int s) {
+        return dao.selectnextprocess(p,s);
+    }
     public  List<DevList> selectAllDev() {
         return dao.selectAllDev();
     }
