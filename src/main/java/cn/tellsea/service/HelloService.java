@@ -45,6 +45,12 @@ public class HelloService {
     public boolean updateTime(DataList data) {
         return dao.updateTime(data) > 0;
     }
+    public boolean resetmyerr() {
+        return dao.resetmyerr() > 0;
+    }
+    public boolean setDevErr(int value,int id) {
+        return dao.setDevErr(value,id) > 0;
+    }
     public boolean updateDevTime(DevList data) {
         return dao.updateDevTime(data) > 0;
     }
@@ -63,6 +69,9 @@ public class HelloService {
     public  DevList selectdev(int type) {
         return dao.selectdev(type);
     }
+    public  DevList selectdevbyid(int id) {
+        return dao.selectdevbyid(id);
+    }
     public  DataList selectcontrolkey(int pid,int type) {
         return dao.selectControlKey(pid,type);
     }
@@ -71,6 +80,9 @@ public class HelloService {
     }
     public  ActionDetial selectnextprocess(int p,int s) {
         return dao.selectnextprocess(p,s);
+    }
+    public  ActionDetial selectAction(int p,int s) {
+        return dao.selectAction(p,s);
     }
     public  List<DevList> selectAllDev() {
         return dao.selectAllDev();

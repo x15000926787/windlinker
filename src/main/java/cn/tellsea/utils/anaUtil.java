@@ -7,6 +7,7 @@ import cn.tellsea.service.impl.RedisServiceImpl;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.quartz.TriggerUtils;
 import org.quartz.impl.triggers.CronTriggerImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,12 +49,15 @@ public  class anaUtil {
 
     public  ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
     public  ScriptEngine scriptEngine = scriptEngineManager.getEngineByName("nashorn");
-
+    public  static Stack<Integer> st = new Stack<Integer>();
     public  static  int process= -1;
-    public  static  int step= -1;
+    public  static  int repeat= 1;
+    public static ActionDetial taction;
+    public static DevList devList;
     public  static  int zhjno= -1;
-    public  static  int ldbpqno= -1;
+    public  static  int  step= -1;
     public  static  int lqbpqno= -1;
+    public  static  String retkey = "empty";
 
     public  boolean isDoubleOrFloat(String str) {
         if (null == str || "".equals(str)) {
@@ -96,76 +100,146 @@ public  class anaUtil {
 /**
  * 执行Action
  */
-    public  void  dostep(ActionDetial actionDetial) throws InterruptedException {
-        DevList tdev = null;
-        DataList tdata = null;
-        /*查找目标设备id*/
-        int tid = 0;
-        String tkey = null;
+    public  void  dostep() throws InterruptedException {
 
-        switch (actionDetial.getTargettype()) {
-            case 1:
-                tid = zhjno;
-                break;
-            case 2:
-                tid = ldbpqno;
-                break;
-            case 3:
-                tid = lqbpqno;
-                break;
-            case 4:
-                tdev = helloService.selectDcfDev(1,4);
-                tid =  tdev.getId();
-                break;
-            case 5:
-                tdev = helloService.selectDcfDev(1,5);
-                tid =  tdev.getId();
-                break;
-            default:
-                tid = 0;
-                break;
+         step = taction.getStep();
+        //ActionDetial actionDetial=null;
+        //actionDetial = helloService.selectnextprocess(process,step);
+        /*查找目标设备id*/
+        int ttp = taction.getTargettype();
+        String tkey = null,rkey = null;
+       // log.info(""+helloService.selectdev(1).getId());
+        try {
+            if (ttp == 4 || ttp == 5)
+                devList = helloService.selectDcfDev(helloService.selectdev(1).getId(),ttp);
+            else {
+                devList = helloService.selectdev(ttp);
+
+            }
+        }catch (Exception e)
+        {
+            devList = null;
         }
-        log.info("step {} info : 目标设备 ID：{}  名称：{}",step,tid,tdev.getDevname());
+
+       if (Objects.nonNull(devList)) {
+           //log.info(devList.toString());
+
+        zhjno = devList.getId();
+
+        log.info("step {} info : 目标设备 ID：{}  名称：{}",step,zhjno,devList.getDevname());
         /*查找目标设备控制键*/
 
-         tkey = helloService.selectcontrolkey(tid,1).getKkey();
-
+         tkey = helloService.selectcontrolkey(zhjno,3).getKkey();
         log.info("step {} info : 目标控制键 {}",step,tkey);
-
-        if (tdev.fresh!=0)
+        /*查找目标设备控制反馈键*/
+        if (ttp == 4 || ttp == 5)
         {
-            log.info("step {} info : 发送复位命令 {}",step,tdev.getFresh());
-            setRedisVal(tkey,String.valueOf(tdev.getFresh()));
+            if (process==1) rkey = helloService.selectcontrolkey(zhjno, 4).getKkey();
+            else rkey = helloService.selectcontrolkey(zhjno, 5).getKkey();
+        }
+        else {
+            rkey = helloService.selectcontrolkey(zhjno, 0).getKkey();
+        }
+        log.info("step {} info : 目标控制反馈键 {}",step,rkey);
+
+        if (devList.fresh!=0)
+        {
+            log.info("step {} info : 发送复位命令 {}",step,devList.getFresh());
+            setRedisVal(tkey,String.valueOf(devList.getFresh()));
             sleep(3000);
         }else
         {
             log.info("step {} info : 此设备无复位命令 ",step);
         }
 
-        log.info("step {} info : 发送控制命令 ",step);
-        setRedisVal(tkey,String.valueOf(tdev.getFresh()));
+
+        retkey = rkey;
+        setRedisVal(tkey,String.valueOf(process==1?devList.getPoweron():devList.getPoweroff()));
+        setRedisProVal("timeout",String.valueOf(repeat),taction.getWait());
+        log.info("step {} info : 发送控制命令 {} {}",step,tkey,process==1?devList.getPoweron():devList.getPoweroff());
+       }else
+       {
+           //告警，无可以设备
+           log.info("step {} info : 无此类型可用设备, 设备类型号 {} ,进程退出.",step,ttp);
+           if (process==1 && !st.empty())
+           {
+               log.info("开机进程异常退出，进入撤销进程...");
+               process = 0;
+               step =0;
+               goback();
+           }
+       }
+    }
+
+
+    /**
+     * 撤销,只考虑开机进程的撤销
+     */
+    public  void  goback() throws InterruptedException {
+
+
+        if (!st.empty()) {
+            zhjno = st.pop();
+            int ttp = 0;
+            String tkey = null,rkey = null;
+            devList = helloService.selectdevbyid(zhjno);
+            taction = helloService.selectAction(0,devList.getType());
+
+
+
+            if (Objects.nonNull(devList)) {
+                log.info(devList.toString());
+
+                zhjno = devList.getId();
+
+                log.info("goback info : 目标设备 ID：{}  名称：{}", zhjno, devList.getDevname());
+                /*查找目标设备控制键*/
+
+                tkey = helloService.selectcontrolkey(zhjno, 3).getKkey();
+                log.info("goback info : 目标控制键 {}", tkey);
+                /*查找目标设备控制反馈键*/
+                if (ttp == 4 || ttp == 5) {
+                    if (process == 1) rkey = helloService.selectcontrolkey(zhjno, 4).getKkey();
+                    else rkey = helloService.selectcontrolkey(zhjno, 5).getKkey();
+                } else {
+                    rkey = helloService.selectcontrolkey(zhjno, 0).getKkey();
+                }
+                log.info("goback info : 目标控制反馈键 {}", rkey);
+
+                if (devList.fresh != 0) {
+                    log.info("goback info : 发送复位命令 {}",  devList.getFresh());
+                    setRedisVal(tkey, String.valueOf(devList.getFresh()));
+                    sleep(3000);
+                } else {
+                    log.info("goback info : 此设备无复位命令 ");
+                }
+
+
+                retkey = rkey;
+                setRedisVal(tkey, String.valueOf(process == 1 ? devList.getPoweron() : devList.getPoweroff()));
+                setRedisProVal("timeout", String.valueOf(repeat), taction.getWait());
+                log.info("goback info : 发送控制命令 {} {}",  tkey, process == 1 ? devList.getPoweron() : devList.getPoweroff());
+            } else {
+                //告警，无可以设备
+                log.info("goback info : 撤销进程异常退出.");
+
+            }
+        }
     }
 
     /**
      * 开启主机/增加主机
      */
     public  void  startZJ() throws InterruptedException {
-        DevList devList=null;
-        ActionDetial actionDetial=null;
-        log.info("开机程序启动......");
+
+
+        log.info("开机进程启动......");
+        helloService.resetmyerr();
         process = 1;
-        step = 1;
-        devList = helloService.selectdev(1);
-        zhjno = devList.getId();
-        log.info("找到运行时间最短主机id {}",devList.getDevname());
-        devList = helloService.selectdev(2);
-        ldbpqno = devList.getId();
-        log.info("找到运行时间最短冷冻变频器id {}",devList.getDevname());
-        devList = helloService.selectdev(3);
-        lqbpqno = devList.getId();
-        log.info("找到运行时间最短冷却变频器id {}",devList.getDevname());
-        actionDetial = helloService.selectnextprocess(process,step);
-        dostep(actionDetial);
+        taction = helloService.selectnextprocess(process,1);;
+
+
+        dostep();
 
         //log.info("");
     }
@@ -291,7 +365,7 @@ public  class anaUtil {
         int timevalid = 0;
         //
        //if (Objects.nonNull(helloService)) log.info(dev_list.toString());
-        map = (JSONObject) objana_v.get(key);
+        map = (JSONObject) objana_v.get(key_id.getString(key));
         DataList obj = null;//(json,Student.class);
         DevList dev = null;
         //log.info(dev_list.get(1).toString());
@@ -321,7 +395,7 @@ public  class anaUtil {
                             // ((HashMap<String, String>) objana_v.get(key)).put("timestat", "1");
                             ((JSONObject) objana_v.get(key)).put("tstatus", "1");
                             ((JSONObject) objana_v.get(key)).put("tcheck", rnow);
-                            obj = JSONObject.toJavaObject((JSONObject)objana_v.get(key),DataList.class);
+                            obj = JSONObject.toJavaObject((JSONObject)objana_v.get(key_id.getString(key)),DataList.class);
                             helloService.updateTime(obj);
                             //add_red("UPDATE datalist SET tstatus=1 ,tcheck='" + rnow + "' where kkey='" + key + "'");
                             // log.warn("UPDATE " + dbname + " SET timestat=1 ,checktime='" + rnow + "' where kkey='" + key + "'");
@@ -346,14 +420,14 @@ public  class anaUtil {
                         //log.warn(df3.format(Date2)+","+df3.format(toDate2)+","+hours);
                        // ((HashMap<String, String>) objana_v.get(key)).put("timestat", "0");
                         ((JSONObject) dev_list.get(map.get("pid"))).put("runtime", "" + tot);
-                         ((JSONObject) objana_v.get(key)).put("tstatus", "0");
-                        ((JSONObject) objana_v.get(key)).put("tcheck", rnow);
+                         ((JSONObject) objana_v.get(key_id.getString(key))).put("tstatus", "0");
+                        ((JSONObject) objana_v.get(key_id.getString(key))).put("tcheck", rnow);
 
                         //mjedis.set(key + ".mtot", String.valueOf(tot));
                         //mjedis.set(key + ".ytot", String.valueOf(tot2));
 
                         //add_red("UPDATE datalist SET tstatus=0 ,tcheck='" + rnow + "',runtime=" + tot + " where kkey='" + key + "'");
-                         obj = JSONObject.toJavaObject((JSONObject)objana_v.get(key),DataList.class);
+                         obj = JSONObject.toJavaObject((JSONObject)objana_v.get(key_id.getString(key)),DataList.class);
                          helloService.updateTime(obj);
                          dev = JSONObject.toJavaObject((JSONObject)dev_list.get(map.get("pid")),DevList.class);
                          helloService.updateDevTime(dev);
@@ -385,37 +459,49 @@ public  class anaUtil {
     public  void handleMessage( String message ) {
         String val=null,pmessage=null;
         Jedis tjedis= JedisUtil.getInstance().getJedis();
-
-
-
-       /* if (Objects.nonNull(helloService)) {
-            log.info("开始读取ana内容.......");
-            try {
-                objana_v = JSONObject.parseObject(helloService.selectAllData().toString().replace("[", "{").replace("]", "}"));
-
-                log.warn(objana_v.toString());
-            } catch (Exception e) {
-                log.error("objana_v 初始化异常   " + e.toString() + "   " + helloService.selectAllDev().toString().replace("[", "{").replace("]", "}"));
-            }
-        }*/
-        if (objana_v.containsKey(message)) {
-           // log.info(message);
+        int ttp = 0,tv = 0;
+        pmessage = message.replace("_.value","");
+        //log.info(message);
+        if (key_id.containsKey(pmessage)) {
+            //log.info(pmessage);
             try {
 
                 val = tjedis.get(message);
+               // log.info(message);
 
-                // log.warn(" - "+" - "+message+" - "+val);
             } catch (Exception e) {
                 val = "0";
                 log.warn(message + ":" + e);
-                // e.printStackTrace();
-            }
 
-//            log.info(message+"  :  "+val);
-            pmessage = message;//.replace("_.value","");
+            }
+            //log.info(val);
+
             try {
-                if ((int) ((JSONObject) objana_v.get(pmessage)).get("type") == 1 ) {
+                //log.info(""+((JSONObject) objana_v.get(key_id.getString(pmessage))).get("type"));
+                ttp = (int) ((JSONObject) objana_v.get(key_id.getString(pmessage))).get("type");
+                tv = (int) ((JSONObject) objana_v.get(key_id.getString(pmessage))).get("tvalid");
+                if ( (ttp== 0 || ttp ==4 || ttp ==5) && tv ==1) {
                     handleTime(pmessage, val);
+                    if (pmessage.matches(retkey) && val.matches(String.valueOf(process)))
+                    {
+                        log.info(pmessage);
+                        repeat = 1;
+                        tjedis.del("timeout");
+                        st.push(devList.getId());
+                        if (taction.getLast()==0) {
+                            if (step>0) {
+                                taction = helloService.selectnextprocess(process, taction.getStep() + 1);
+                                dostep();
+                            }
+                            else {
+                                goback();
+                            }
+                        }else
+                        {
+
+                            log.info("控制程序 {} 执行完成",process);
+                        }
+                    }
                 }
                 //handleEvt(pmessage,val);
             } catch (Exception e) {
@@ -475,6 +561,65 @@ public  class anaUtil {
 
 
         JedisUtil.getInstance().returnJedis(tjedis);
+
+
+    }
+    public  void handleExpired( String message ) throws InterruptedException {
+        String val = null,pmessage = null;
+        int errid = 0;
+
+        if ("timeout".matches(message)) {
+
+           if (repeat<taction.getRepeat())
+           {
+               log.info("step  {} info : {} 控制反馈 第{}次 超时",taction.getStep(),devList.getDevname(),repeat);
+               repeat = repeat + 1;
+               dostep();
+
+           }else
+           {
+               log.info("step  {} info : {} 控制无响应 ，踢出可用序列 , 请确认！！！",devList.getDevname(),taction.getStep());
+               if (devList.getType() ==4 || devList.getType()==5)
+               {
+                   errid = devList.getRun();
+               }else
+               {
+                   errid = devList.getId();
+               }
+               helloService.setDevErr(1,errid);
+               repeat = 1;
+               dostep();
+           }
+           /* pmessage = message.replace("_.value","");
+            try {
+                log.info(pmessage);
+                log.info(key_id.getString(pmessage));
+                log.info(objana_v.get(key_id.getString(pmessage)).toString());
+                if ((int) ((JSONObject) objana_v.get(key_id.getString(pmessage))).get("type") == 0 ) {
+                    handleTime(pmessage, val);
+                    if (pmessage.matches(retkey) && val.matches(String.valueOf(process)))
+                    {
+                        if (taction.getLast()==0) {
+                            taction = helloService.selectnextprocess(process, taction.getStep() + 1);
+                            dostep();
+                        }else
+                        {
+                            log.info("控制程序 {} 执行完成");
+                        }
+                    }
+                }
+                //handleEvt(pmessage,val);
+            } catch (Exception e) {
+                log.error(e.toString()+"=====>"+pmessage);
+            }*/
+        }
+
+
+        val=null;
+        pmessage=null;
+
+
+
 
 
     }

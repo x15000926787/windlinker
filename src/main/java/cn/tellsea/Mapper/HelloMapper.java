@@ -29,12 +29,18 @@ public interface HelloMapper {
             "     from (select * from devlist as a\n" +
             "                                 where  runtime=(select min(b.runtime)\n" +
             "                                                   from devlist as b\n" +
-            "                                                    where a.type = b.type and a.run=b.run and a.status=b.status and a.error=b.error and a.type=#{type} and a.run=0 and a.error=0 and a.status=0\n" +
+            "                                                    where a.type = b.type and a.valid=b.valid and  a.run=b.run and a.status=b.status and a.error=b.error and a.myerr=b.myerr and a.type=#{type} and a.run=0 and a.error=0 and a.myerr=0 and a.valid=1 and a.status=0\n" +
             "                                                   )\n" +
             "           ) as a\n" +
             "      group by type")
     DevList selectdev(int type);
 
+
+    /**
+     *
+     */
+    @Select("select  * from devlist where id=#{id}")
+    DevList selectdevbyid(int id);
     /**
      * 查询当前主机在运行台数
      * @return
@@ -54,14 +60,22 @@ public interface HelloMapper {
      * @return
      */
     @Select("SELECT * FROM  devlist WHERE run=#{pid} and type=#{type}")
-    DevList selectDcfDev(int pid,int type);
+    DevList selectDcfDev(int pid, int type);
 
     /**
      * 查询控制键
      * @return
      */
     @Select("SELECT * FROM  datalist WHERE pid=#{pid} and type=#{type}")
-    DataList selectControlKey(int pid,int type);
+    DataList selectControlKey(int pid, int type);
+
+
+    /**
+     * 查询步骤详情
+     * @return
+     */
+    @Select("SELECT * FROM  action_detial WHERE pid=#{pid} and targettype=#{type}")
+    ActionDetial selectAction(int pid, int type);
 
     // 查询全部
     @Select("SELECT * FROM hello")
@@ -94,12 +108,23 @@ public interface HelloMapper {
     @Update("UPDATE datalist SET tstatus=#{tstatus},tcheck=#{tcheck} WHERE kkey=#{kkey}")
     int updateTime(DataList data);
 
+    /**
+     * 自判异常复位
+     * @return
+     */
+    @Update("UPDATE devlist SET myerr=0")
+    int resetmyerr();
+
     @Update("UPDATE devlist SET runtime=#{runtime} WHERE id=#{id}")
     int updateDevTime(DevList data);
 
     /** 更新 value*/
     @Update("UPDATE hello SET value=#{value} WHERE id=#{id}")
     int updateValue(HelloModel model);
+
+    /** 更新 设置设备自判状态为异常*/
+    @Update("UPDATE devlist SET myerr=#{value} WHERE id=#{id}")
+    int setDevErr(int value,int id);
 
     // 根据 ID 删除
     @Delete("DELETE FROM hello WHERE id=#{id}")

@@ -22,7 +22,7 @@ public class RedisConfiguration {
         System.out.println("redisconfig");
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
-        container.addMessageListener(new KeyExpiredListener(), new PatternTopic("__keyevent@0__:*"));
+        container.addMessageListener(new KeyExpiredListener(), new PatternTopic("__keyevent@11__:*"));
         return container;
     }
 }

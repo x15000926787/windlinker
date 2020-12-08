@@ -87,7 +87,10 @@ public class JedisUtil {
      * @return
      */
     public Jedis getJedis() {
-        return jedisPool.getResource();
+
+        Jedis tjedis =jedisPool.getResource();
+        tjedis.select(11);
+        return tjedis;
     }
     /**
      * 从jedis连接池中获取获取jedis对象

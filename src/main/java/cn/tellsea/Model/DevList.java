@@ -15,10 +15,11 @@ public class DevList {
     public String toString() {
         return id+":{" +
 
-                ", devname:'" + devname + '\'' +
+                " devname:'" + devname + '\'' +
                 ", type:" + type +
                 ", run:" + run +
                 ", error:" + error +
+                ", myerr:" + myerr +
                 ", valid:" + valid +
                 ", status:" + status +
                 ", runtime:" + runtime +
@@ -89,6 +90,8 @@ public class DevList {
     public int run;
     //故障
     public int error;
+    //自判故障
+    public int myerr;
     //手自动
     public int status;
     //可用
@@ -106,6 +109,14 @@ public class DevList {
 
     public double runtime;
     public  String devname;
+
+    public int getMyerr() {
+        return myerr;
+    }
+
+    public void setMyerr(int myerr) {
+        this.myerr = myerr;
+    }
 
     public int getPoweron() {
         return poweron;

@@ -55,7 +55,7 @@ public class KeyExpiredListener  implements MessageListener {
     public void onMessage(Message message, byte[] bytes) {
         byte[] body = message.getBody();// 建议使用: valueSerializer
         byte[] channel = message.getChannel();
-        log.info(String.format("channel: %s, body: %s, bytes: %s",new String(channel), new String(body), new String(bytes)));
+        //log.info(String.format("channel: %s, body: %s, bytes: %s",new String(channel), new String(body), new String(bytes)));
         Runnable noArguments = () -> {
             try {
 
@@ -68,12 +68,12 @@ public class KeyExpiredListener  implements MessageListener {
                     try {
                         if (new String(channel).contains("expired") ) {
                             //logger.warn(message);
-                            //anaUtil.handleExpired(message);
+                            anautil.handleExpired(new String(body));
                         }
                         else {
 
 
-                            //logger.warn(message+","+channel);
+                            //log.warn(new String(body));
                             anautil.handleMessage(new String(body));
 
                         }

@@ -175,8 +175,9 @@ public class SpringbootTaskApplication implements CommandLineRunner {
             log.error("生成定时任务出错了" + e.toString());
             e.printStackTrace();
         }
-        JedisUtil.getInstance().getJedis().set("dd","1","NX","EX",10);
-        anautil.init();
         log.info("应用初始化完成");
+        //JedisUtil.getInstance().getJedis().set("dd","1","NX","EX",10);
+        anautil.init();
+
     }
 }
