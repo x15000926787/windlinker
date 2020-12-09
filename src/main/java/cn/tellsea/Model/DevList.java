@@ -14,8 +14,8 @@ public class DevList {
     @Override
     public String toString() {
         return id+":{" +
-
-                " devname:'" + devname + '\'' +
+                " id:" + id +
+                ", devname:'" + devname + '\'' +
                 ", type:" + type +
                 ", run:" + run +
                 ", error:" + error +

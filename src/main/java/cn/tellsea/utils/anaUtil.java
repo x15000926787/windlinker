@@ -47,8 +47,8 @@ public  class anaUtil {
     public  JSONObject key_id = new JSONObject();
 
 
-    public  ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
-    public  ScriptEngine scriptEngine = scriptEngineManager.getEngineByName("nashorn");
+    //public  ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
+    //public  ScriptEngine scriptEngine = scriptEngineManager.getEngineByName("nashorn");
     public  static Stack<Integer> st = new Stack<Integer>();
     public  static  int process= -1;
     public  static  int repeat= 1;
@@ -56,7 +56,8 @@ public  class anaUtil {
     public static DevList devList;
     public  static  int zhjno= -1;
     public  static  int  step= -1;
-    public  static  int lqbpqno= -1;
+    public  static  int  stop= -1;        //标记关机度 ，0：关闭所有在运行的主机，1：关闭一台
+    public  static  int tzjno= -1;       //在关机进程中记录关闭的主机的ID
     public  static  String retkey = "empty";
 
     public  boolean isDoubleOrFloat(String str) {
@@ -105,16 +106,28 @@ public  class anaUtil {
          step = taction.getStep();
         //ActionDetial actionDetial=null;
         //actionDetial = helloService.selectnextprocess(process,step);
-        /*查找目标设备id*/
+
         int ttp = taction.getTargettype();
         String tkey = null,rkey = null;
        // log.info(""+helloService.selectdev(1).getId());
+        /*查找目标设备*/
         try {
-            if (ttp == 4 || ttp == 5)
-                devList = helloService.selectDcfDev(helloService.selectdev(1).getId(),ttp);
-            else {
-                devList = helloService.selectdev(ttp);
+            if (process ==1) {
+                if (ttp == 4 || ttp == 5)
+                    devList = helloService.selectDcfDev(helloService.selectdev(1).getId(), ttp);
+                else {
+                    devList = helloService.selectdev(ttp);
 
+                }
+            }else
+            {
+                if (ttp == 4 || ttp == 5)
+                    devList = helloService.selectDcfDev(tzjno, ttp);
+                else {
+                    devList = helloService.selectdev4s(ttp);
+                    if (ttp == 1) tzjno = devList.getId();
+
+                }
             }
         }catch (Exception e)
         {
@@ -157,9 +170,14 @@ public  class anaUtil {
         setRedisVal(tkey,String.valueOf(process==1?devList.getPoweron():devList.getPoweroff()));
         setRedisProVal("timeout",String.valueOf(repeat),taction.getWait());
         log.info("step {} info : 发送控制命令 {} {}",step,tkey,process==1?devList.getPoweron():devList.getPoweroff());
+
+        sleep(5000);
+
+        log.info("发送模拟反馈 {} {}",rkey,process);
+           setRedisVal(rkey,String.valueOf(process));
        }else
        {
-           //告警，无可以设备
+           //告警，无可用设备
            log.info("step {} info : 无此类型可用设备, 设备类型号 {} ,进程退出.",step,ttp);
            if (process==1 && !st.empty())
            {
@@ -244,6 +262,40 @@ public  class anaUtil {
         //log.info("");
     }
     /**
+     * 关闭主机
+     */
+    public  void  stopZJ() throws InterruptedException {
+
+        log.info("关机进程启动......");
+        process = 0;
+        stop = 0 ;
+        helloService.resetmyerr();
+        int  cnt = helloService.selectdevruncount().size();
+        if (cnt>0)
+            log.info("当前有 {} 台主机在运行，将逐步关闭.",cnt);
+        taction = helloService.selectnextprocess(process,1);
+        dostep();
+
+
+    }
+    /**
+     * 减少一台主机
+     */
+    public  void  stopOneZJ() throws InterruptedException {
+
+        log.info("关机进程启动......");
+        process = 0;
+        stop = 1;
+        helloService.resetmyerr();
+        int  cnt = helloService.selectdevruncount().size();
+        if (cnt>0)
+            log.info("当前有 {} 台主机在运行，将关闭一台",cnt);
+        taction = helloService.selectnextprocess(process,1);
+        dostep();
+
+
+    }
+    /**
      * 自检
      * @throws ParseException
      * @throws InterruptedException
@@ -278,7 +330,7 @@ public  class anaUtil {
             log.info("当前没有主机在运行");
             if (val.matches("1"))
             {
-                log.info("根据定时任务 {} ,进入开机程序",tk_detial.get(0).getTaskid());
+                log.info("根据定时任务 {} ,进入开机进程",tk_detial.get(0).getTaskid());
                 startZJ();
             }
 
@@ -287,7 +339,7 @@ public  class anaUtil {
             log.info("当前有{}台主机在运行。",cnt);
             if (val.matches("0"))
             {
-                log.info("根据定时任务 {} ,进入关机程序",tk_detial.get(0).getTaskid());
+                log.info("根据定时任务 {} ,进入关机进程",tk_detial.get(0).getTaskid());
             }
         }
     };
@@ -350,7 +402,7 @@ public  class anaUtil {
         String s = null;
         //SimpleDateFormat df,df2,df3;
         LocalDateTime rightnow = LocalDateTime.now();
-        log.info(rightnow.toString());
+        //log.info(rightnow.toString());
         char[] ss = null;
         JSONObject tmap = new JSONObject();
 
@@ -379,26 +431,18 @@ public  class anaUtil {
         //timevalid=1;
         if (timevalid == 1)  {
 
-
-
-
-
-
-
                     dbname = "devlist";
-           // log.warn(map.get("tstatus").toString());
+
                 if (Integer.parseInt(vals)==1) {
 
                         if (map.get("tstatus").toString().matches("0")) {
-                            log.warn(key + " 开始计时 ");
-                            //开始计时
-                            // ((HashMap<String, String>) objana_v.get(key)).put("timestat", "1");
-                            ((JSONObject) objana_v.get(key)).put("tstatus", "1");
-                            ((JSONObject) objana_v.get(key)).put("tcheck", rnow);
+
+                            ((JSONObject) objana_v.get(key_id.getString(key))).put("tstatus", "1");
+                            ((JSONObject) objana_v.get(key_id.getString(key))).put("tcheck", rnow);
                             obj = JSONObject.toJavaObject((JSONObject)objana_v.get(key_id.getString(key)),DataList.class);
                             helloService.updateTime(obj);
-                            //add_red("UPDATE datalist SET tstatus=1 ,tcheck='" + rnow + "' where kkey='" + key + "'");
-                            // log.warn("UPDATE " + dbname + " SET timestat=1 ,checktime='" + rnow + "' where kkey='" + key + "'");
+                            dev = JSONObject.toJavaObject((JSONObject)dev_list.get(map.get("pid")),DevList.class);
+                            log.warn("{} 开始计时 ",dev.getDevname());
                         }
                     }
                  else
@@ -407,14 +451,15 @@ public  class anaUtil {
                      {
                         //停止计时
 
-                        log.warn(key + " 停止计时 ");
+
                         //LocalDateTime Date2 = LocalDateTime.now();
-                        LocalDateTime to2 = new Date((long)map.get("tcheck")).toInstant().atOffset(ZoneOffset.of("+8")).toLocalDateTime();//LocalDateTime.ofEpochSecond((long)map.get("tcheck"),0, ZoneOffset.ofHours(8));//LocalDateTime.parse(.toString(), formatter);
-                        log.info(to2.toString());
+                        LocalDateTime to2 = new Date( Long.parseLong(map.get("tcheck").toString())).toInstant().atOffset(ZoneOffset.of("+8")).toLocalDateTime();//LocalDateTime.ofEpochSecond((long)map.get("tcheck"),0, ZoneOffset.ofHours(8));//LocalDateTime.parse(.toString(), formatter);
+                        //log.info(to2.toString());
                          Duration duration = Duration.between(to2, rightnow);
-                         log.info(duration.toString());
+                        // log.info(duration.toString());
                         //相差的分钟数
                         long minutes = duration.toMinutes();
+                        // log.info(minutes+","+tmap.get("runtime").toString());
                         //float hours =  ((rightnow.get - to2) / (1000.00f * 60 * 60));
                         float tot = minutes / 60.00f + Float.parseFloat(tmap.get("runtime").toString());
                         //log.warn(df3.format(Date2)+","+df3.format(toDate2)+","+hours);
@@ -428,10 +473,12 @@ public  class anaUtil {
 
                         //add_red("UPDATE datalist SET tstatus=0 ,tcheck='" + rnow + "',runtime=" + tot + " where kkey='" + key + "'");
                          obj = JSONObject.toJavaObject((JSONObject)objana_v.get(key_id.getString(key)),DataList.class);
+                         //log.info(obj.toString());
                          helloService.updateTime(obj);
                          dev = JSONObject.toJavaObject((JSONObject)dev_list.get(map.get("pid")),DevList.class);
+                         //log.info(dev.toString());
                          helloService.updateDevTime(dev);
-
+                         log.warn("{} 停止计时,此次运行时长 {} minutes",dev.getDevname(),minutes);
 
                     }
                 }
@@ -445,7 +492,7 @@ public  class anaUtil {
     public  void setRedisVal(String kkey,String val)
     {
         Jedis tjedis= JedisUtil.getInstance().getJedis();
-        tjedis.set(kkey+"_.value",val);
+        tjedis.set(kkey,val);
         tjedis.set(kkey+"_.status","1");
         JedisUtil.getInstance().returnJedis(tjedis);
     }
@@ -480,14 +527,21 @@ public  class anaUtil {
                 //log.info(""+((JSONObject) objana_v.get(key_id.getString(pmessage))).get("type"));
                 ttp = (int) ((JSONObject) objana_v.get(key_id.getString(pmessage))).get("type");
                 tv = (int) ((JSONObject) objana_v.get(key_id.getString(pmessage))).get("tvalid");
-                if ( (ttp== 0 || ttp ==4 || ttp ==5) && tv ==1) {
+                if ( (ttp== 0) ) {
+
+                    if (tv ==1)
                     handleTime(pmessage, val);
+                }
                     if (pmessage.matches(retkey) && val.matches(String.valueOf(process)))
                     {
-                        log.info(pmessage);
+                       // log.info(pmessage);
                         repeat = 1;
                         tjedis.del("timeout");
                         st.push(devList.getId());
+                        if (devList.getType()!=4 && devList.getType()!=5) {
+                            devList.setRun(process);
+                            helloService.updateDevRun(devList);
+                        }
                         if (taction.getLast()==0) {
                             if (step>0) {
                                 taction = helloService.selectnextprocess(process, taction.getStep() + 1);
@@ -498,11 +552,20 @@ public  class anaUtil {
                             }
                         }else
                         {
-
+                            if ( process == 0)
+                            {
+                                //int  cnt = helloService.selectdevruncount().size();
+                                if (helloService.selectdevruncount().size()>0 && stop == 0)
+                                {
+                                    taction = helloService.selectnextprocess(process,1);
+                                    dostep();
+                                }
+                                //log.info("{} 控制程序 {} 执行完成",devList.getDevname(),process);
+                            }
                             log.info("控制程序 {} 执行完成",process);
                         }
                     }
-                }
+
                 //handleEvt(pmessage,val);
             } catch (Exception e) {
                   log.error(e.toString()+"=====>"+pmessage);

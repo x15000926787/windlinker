@@ -54,7 +54,9 @@ public class HelloService {
     public boolean updateDevTime(DevList data) {
         return dao.updateDevTime(data) > 0;
     }
-
+    public boolean updateDevRun(DevList data) {
+        return dao.updateDevRun(data) > 0;
+    }
     public boolean updateValue(HelloModel model) {
         return dao.updateValue(model) > 0;
     }
@@ -68,6 +70,9 @@ public class HelloService {
     }
     public  DevList selectdev(int type) {
         return dao.selectdev(type);
+    }
+    public  DevList selectdev4s(int type) {
+        return dao.selectdev4s(type);
     }
     public  DevList selectdevbyid(int id) {
         return dao.selectdevbyid(id);

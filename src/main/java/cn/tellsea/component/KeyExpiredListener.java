@@ -47,7 +47,7 @@ public class KeyExpiredListener  implements MessageListener {
 
     private  anaUtil anautil=null;
     public KeyExpiredListener() throws ClassNotFoundException {
-        System.out.println("listener");
+
         anautil = (anaUtil) SpringUtil.getBean(Class.forName("cn.tellsea.utils.anaUtil"));
         firstClass = (FirstClass) SpringUtil.getBean(Class.forName("cn.tellsea.component.FirstClass"));
     }

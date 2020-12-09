@@ -35,7 +35,19 @@ public interface HelloMapper {
             "      group by type")
     DevList selectdev(int type);
 
-
+    /**
+     * @param type
+     * @return
+     */
+    @Select("select  *\n" +
+            "     from (select * from devlist as a\n" +
+            "                                 where  runtime=(select max(b.runtime)\n" +
+            "                                                   from devlist as b\n" +
+            "                                                    where a.type = b.type and a.valid=b.valid and  a.run=b.run and a.status=b.status and a.error=b.error and a.myerr=b.myerr and a.type=#{type} and a.run=1 and a.error=0 and a.myerr=0 and a.valid=1 and a.status=0\n" +
+            "                                                   )\n" +
+            "           ) as a\n" +
+            "      group by type")
+    DevList selectdev4s(int type);
     /**
      *
      */
@@ -56,11 +68,13 @@ public interface HelloMapper {
     ActionDetial selectnextprocess(int p, int s);
 
     /**
-     * 查询step目标电磁阀设备
+     * 查询step目标电磁阀设备，开机
      * @return
      */
     @Select("SELECT * FROM  devlist WHERE run=#{pid} and type=#{type}")
     DevList selectDcfDev(int pid, int type);
+
+
 
     /**
      * 查询控制键
@@ -117,6 +131,9 @@ public interface HelloMapper {
 
     @Update("UPDATE devlist SET runtime=#{runtime} WHERE id=#{id}")
     int updateDevTime(DevList data);
+
+    @Update("UPDATE devlist SET run=#{run} WHERE id=#{id}")
+    int updateDevRun(DevList data);
 
     /** 更新 value*/
     @Update("UPDATE hello SET value=#{value} WHERE id=#{id}")
