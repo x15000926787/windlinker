@@ -73,6 +73,16 @@ public class DataList {
     }
 
     public String kkey;
+    public String tkey;
+
+    public String getTkey() {
+        return tkey;
+    }
+
+    public void setTkey(String tkey) {
+        this.tkey = tkey;
+    }
+
     public String name;
     public int type;
 
@@ -112,6 +122,7 @@ public class DataList {
                 " id:" + id +
                 ",pid:" + pid +
                 ", kkey:'" + kkey + '\'' +
+                ", tkey:'" + tkey + '\'' +
                 ", name:'" + name + '\'' +
                 ", type:" + type +
                 ", tvalid:" + tvalid +

@@ -57,6 +57,12 @@ public class HelloService {
     public boolean updateDevRun(DevList data) {
         return dao.updateDevRun(data) > 0;
     }
+    public boolean updateDevErr(DevList data) {
+        return dao.updateDevErr(data) > 0;
+    }
+    public boolean updateDevStatus(DevList data) {
+        return dao.updateDevStatus(data) > 0;
+    }
     public boolean updateValue(HelloModel model) {
         return dao.updateValue(model) > 0;
     }
@@ -64,7 +70,9 @@ public class HelloService {
     public boolean delete(Integer id) {
         return dao.delete(id) > 0;
     }
-
+    public  List<Parameter> selectAllPara() {
+        return dao.selectAllPara();
+    }
     public  List<DevList> selectdevruncount() {
         return dao.selectdevruncount();
     }
@@ -86,6 +94,7 @@ public class HelloService {
     public  ActionDetial selectnextprocess(int p,int s) {
         return dao.selectnextprocess(p,s);
     }
+
     public  ActionDetial selectAction(int p,int s) {
         return dao.selectAction(p,s);
     }

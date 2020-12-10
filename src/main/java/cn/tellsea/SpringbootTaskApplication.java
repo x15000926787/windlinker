@@ -110,6 +110,7 @@ public class SpringbootTaskApplication implements CommandLineRunner {
 
             anautil.loadAna_v();
             anautil.loadDevList();
+            anautil.loadParaList();
            /* try {
 
                 anautil.objana_v = JSONObject.parseObject(helloService.selectAllData().toString().replace("[","{").replace("]","}"));
@@ -136,7 +137,7 @@ public class SpringbootTaskApplication implements CommandLineRunner {
 
         /***********************刷新实时数据******************/
         firstClass.redis_executor.execute(updateDataJob);
-        QuartzManager.addJob("keepRedisAlive" , keepaliveJob.class, "0 * * * * ? *");
+        QuartzManager.addJob("keepRedisAlive" , keepaliveJob.class, "*/30 * * * * ? *");
 
         /**********************开启定时任务*******************/
 

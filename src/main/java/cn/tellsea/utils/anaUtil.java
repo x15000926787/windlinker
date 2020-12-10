@@ -11,11 +11,14 @@ import lombok.val;
 import org.quartz.TriggerUtils;
 import org.quartz.impl.triggers.CronTriggerImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.scheduling.support.CronSequenceGenerator;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
+import sun.jvm.hotspot.debugger.posix.elf.ELFSectionHeader;
 
 import javax.rmi.CORBA.Util;
 import javax.script.ScriptEngine;
@@ -33,6 +36,7 @@ import static java.lang.Thread.sleep;
 
 @Slf4j
 @Component
+@PropertySource({"classpath:para.properties"})
 public  class anaUtil {
 
     @Autowired
@@ -46,9 +50,9 @@ public  class anaUtil {
 
     public  JSONObject key_id = new JSONObject();
 
-
-    //public  ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
-    //public  ScriptEngine scriptEngine = scriptEngineManager.getEngineByName("nashorn");
+    public  JSONObject para_list = new JSONObject();
+    public  ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
+    public  ScriptEngine scriptEngine = scriptEngineManager.getEngineByName("nashorn");
     public  static Stack<Integer> st = new Stack<Integer>();
     public  static  int process= -1;
     public  static  int repeat= 1;
@@ -59,6 +63,24 @@ public  class anaUtil {
     public  static  int  stop= -1;        //标记关机度 ，0：关闭所有在运行的主机，1：关闭一台
     public  static  int tzjno= -1;       //在关机进程中记录关闭的主机的ID
     public  static  String retkey = "empty";
+    public  static  float tmax = -999.9f;
+    public  static  float tmin = 999.9f;
+
+
+
+    @Value("${sys.returnWT}")
+    public  String retWT ;
+    @Value("${sys.msguser}")
+    public  String msguser ;
+    @Value("${sys.outWT}")
+    public  String outWT ;
+
+    public static int errzj = 0;
+
+
+
+
+
 
     public  boolean isDoubleOrFloat(String str) {
         if (null == str || "".equals(str)) {
@@ -125,7 +147,11 @@ public  class anaUtil {
                     devList = helloService.selectDcfDev(tzjno, ttp);
                 else {
                     devList = helloService.selectdev4s(ttp);
-                    if (ttp == 1) tzjno = devList.getId();
+
+                    if (ttp == 1) {
+                        if (errzj!=0) devList = helloService.selectdevbyid(errzj);
+                        tzjno = devList.getId();
+                    }
 
                 }
             }
@@ -142,7 +168,7 @@ public  class anaUtil {
         log.info("step {} info : 目标设备 ID：{}  名称：{}",step,zhjno,devList.getDevname());
         /*查找目标设备控制键*/
 
-         tkey = helloService.selectcontrolkey(zhjno,3).getKkey();
+         tkey = helloService.selectcontrolkey(zhjno,3).getTkey();
         log.info("step {} info : 目标控制键 {}",step,tkey);
         /*查找目标设备控制反馈键*/
         if (ttp == 4 || ttp == 5)
@@ -162,7 +188,7 @@ public  class anaUtil {
             sleep(3000);
         }else
         {
-            log.info("step {} info : 此设备无复位命令 ",step);
+            //log.info("step {} info : 此设备无复位命令 ",step);
         }
 
 
@@ -289,12 +315,23 @@ public  class anaUtil {
         helloService.resetmyerr();
         int  cnt = helloService.selectdevruncount().size();
         if (cnt>0)
-            log.info("当前有 {} 台主机在运行，将关闭一台",cnt);
-        taction = helloService.selectnextprocess(process,1);
+        {
+            if (errzj>0) {
+                log.info("将关闭 {}", helloService.selectdevbyid(errzj).getDevname());
+                taction = helloService.selectnextprocess(process,(int)((JSONObject)dev_list.get(errzj)).get("error"));
+            }
+            else {
+                log.info("当前有 {} 台主机在运行，将关闭一台", cnt);
+                taction = helloService.selectnextprocess(process,1);
+            }
+        }
+
+
         dostep();
 
 
     }
+
     /**
      * 自检
      * @throws ParseException
@@ -375,6 +412,21 @@ public  class anaUtil {
 
 
     }
+
+    public  void loadParaList(){
+
+        log.info("开始读取parameter内容.......");
+        try {
+            para_list = JSONObject.parseObject(helloService.selectAllPara().toString().replace("[","{").replace("]","}"));
+
+            log.warn(para_list.toString());
+        }catch (Exception e)
+        {
+            log.error("para_list 初始化异常   "+e.toString()+"   "+helloService.selectAllPara().toString().replace("[","{").replace("]","}"));
+        }
+
+
+    }
     /*
      * 执行sql
      * getPrepatedResultSet
@@ -403,7 +455,7 @@ public  class anaUtil {
         //SimpleDateFormat df,df2,df3;
         LocalDateTime rightnow = LocalDateTime.now();
         //log.info(rightnow.toString());
-        char[] ss = null;
+
         JSONObject tmap = new JSONObject();
 
         long rnow = rightnow.toInstant(ZoneOffset.of("+8")).toEpochMilli();
@@ -492,7 +544,7 @@ public  class anaUtil {
     public  void setRedisVal(String kkey,String val)
     {
         Jedis tjedis= JedisUtil.getInstance().getJedis();
-        tjedis.set(kkey,val);
+        tjedis.set(kkey+"_.value",val);
         tjedis.set(kkey+"_.status","1");
         JedisUtil.getInstance().returnJedis(tjedis);
     }
@@ -506,65 +558,208 @@ public  class anaUtil {
     public  void handleMessage( String message ) {
         String val=null,pmessage=null;
         Jedis tjedis= JedisUtil.getInstance().getJedis();
-        int ttp = 0,tv = 0;
+        int ttp = 0,tv = 0,stt = 0,vl=0;
+        float vv = 0.0f,vs = 0.0f;
         pmessage = message.replace("_.value","");
-        //log.info(message);
+
         if (key_id.containsKey(pmessage)) {
-            //log.info(pmessage);
+
+
             try {
 
                 val = tjedis.get(message);
-               // log.info(message);
+
 
             } catch (Exception e) {
                 val = "0";
-                log.warn(message + ":" + e);
+                log.warn(message + ":" + e.toString());
 
             }
-            //log.info(val);
 
+
+            JSONObject map = new JSONObject();
+
+
+
+
+            DevList dev = null;
             try {
-                //log.info(""+((JSONObject) objana_v.get(key_id.getString(pmessage))).get("type"));
+                map = (JSONObject) objana_v.get(key_id.getString(pmessage));
                 ttp = (int) ((JSONObject) objana_v.get(key_id.getString(pmessage))).get("type");
                 tv = (int) ((JSONObject) objana_v.get(key_id.getString(pmessage))).get("tvalid");
-                if ( (ttp== 0) ) {
+                dev = JSONObject.toJavaObject((JSONObject)dev_list.get(map.get("pid")),DevList.class);
 
-                    if (tv ==1)
-                    handleTime(pmessage, val);
+                try {
+
+                    vv = Float.parseFloat(val);
+
+
+                } catch (Exception e) {
+                    vv = 0;
+                    log.warn(message + ":" + e.toString());
+
                 }
-                    if (pmessage.matches(retkey) && val.matches(String.valueOf(process)))
+                if (pmessage.matches(retWT)){
+
+                    if (tjedis.exists("add")){
+                        if (vv>tmax) tmax = vv;
+                        if (vv<tmin) tmin = vv;
+                    }else
                     {
-                       // log.info(pmessage);
-                        repeat = 1;
-                        tjedis.del("timeout");
-                        st.push(devList.getId());
-                        if (devList.getType()!=4 && devList.getType()!=5) {
-                            devList.setRun(process);
-                            helloService.updateDevRun(devList);
-                        }
-                        if (taction.getLast()==0) {
-                            if (step>0) {
-                                taction = helloService.selectnextprocess(process, taction.getStep() + 1);
-                                dostep();
-                            }
-                            else {
-                                goback();
-                            }
-                        }else
+                        if (vv > ((Parameter)para_list.get(1)).getValue())
                         {
-                            if ( process == 0)
-                            {
-                                //int  cnt = helloService.selectdevruncount().size();
-                                if (helloService.selectdevruncount().size()>0 && stop == 0)
-                                {
-                                    taction = helloService.selectnextprocess(process,1);
-                                    dostep();
-                                }
-                                //log.info("{} 控制程序 {} 执行完成",devList.getDevname(),process);
-                            }
-                            log.info("控制程序 {} 执行完成",process);
+                            tmax = -999.9f;
+                            tmin = 999.9f;
+                            tjedis.set("add","1","NX","EX",600);
                         }
                     }
+
+                    try {
+                        vs = Float.parseFloat(tjedis.get(outWT));
+                    }catch (Exception e)
+                    {
+                        log.warn(message + ":" + e.toString());
+                    }
+                    if (vv<((Parameter)para_list.get(1)).getValue() && (vv-vs)<2)
+                    {
+                        tjedis.set("mid","1","NX","EX",300);
+                    }else
+                    {
+                        tjedis.del("mid");
+                    }
+                }
+
+
+                /**
+                 * 计时信息处理
+                 */
+                if ( (ttp == 0) ) {
+
+                    if (tv ==1)
+                        handleTime(pmessage, val);
+                }
+                /**
+                 * 故障信息处理
+                 */
+                if ( (ttp == 1) ) {
+                    vl = Integer.parseInt(val);
+                    dev.setError(vl);
+
+                    ((JSONObject)dev_list.get(dev.getId())).put("error",dev.getError());
+                    helloService.updateDevErr(dev);
+                    if (vl > 0) {
+
+                            if (dev.getStatus()==1) {
+                                log.info(dev.getDevname() + " 报故障,运行模式为本地，不处理");
+                            }else if (dev.getRun()==0 ){
+                                log.info(dev.getDevname() + " 报故障,未运行，不处理");
+                            }else {
+
+
+                                    log.info(dev.getDevname() + " 发生故障");
+                                    if (!msguser.matches("0"))
+                                        SendViaWs.sendmsg(msguser, dev.getDevname() + " 发生故障");
+                                    switch (dev.getType()) {
+                                        case 1:
+                                            if (vl == 1) {
+                                                log.info("{}带故障运行，关闭，重新开启一台", dev.getDevname());
+                                                errzj = dev.getId();
+                                                process = 0;
+                                                taction = helloService.selectnextprocess(process, 1);
+                                                stopOneZJ();
+
+
+                                            }
+                                            if (vl == 2) {
+                                                log.info("{}故障停机，重新开启一台", dev.getDevname());
+                                                dev.setRun(0);
+
+                                                ((JSONObject)dev_list.get(dev.getId())).put("run",dev.getRun());
+                                                helloService.updateDevRun(dev);
+                                                errzj = dev.getId();
+                                                tzjno = dev.getId();
+                                                process = 0;
+                                                taction = helloService.selectnextprocess(process, 2);
+                                                stopOneZJ();
+
+                                            }
+                                            break;
+                                        case 4:
+
+                                            break;
+                                        case 5:
+
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                }
+                    }
+                }
+                if ( (ttp == 2) ) {
+                    stt = Integer.parseInt(val);
+                    switch(dev.getType()){
+                        case 1 :
+                            stt = stt==1?1:0;
+                            break;
+                        case 4 :
+                            stt = stt==1?0:1;
+                            break;
+                        case 5 :
+                            stt = stt==1?0:1;
+                            break;
+                        default :
+                            break;
+                    }
+                    dev.setStatus(stt);
+                    ((JSONObject)dev_list.get(dev.getId())).put("status",dev.getStatus());
+                    helloService.updateDevStatus(dev);
+                }
+                if (pmessage.matches(retkey) && val.matches(String.valueOf(process)))
+                {
+                   // log.info(pmessage);
+                    repeat = 1;
+                    tjedis.del("timeout");
+                    st.push(devList.getId());
+                    if (devList.getType()!=4 && devList.getType()!=5) {
+                        devList.setRun(process);
+                        ((JSONObject)dev_list.get(devList.getId())).put("run",devList.getRun());
+                        helloService.updateDevRun(devList);
+                    }
+                    if (taction.getLast()==0) {
+                        if (step>0) {
+                            taction = helloService.selectnextprocess(process, taction.getStep() + 1);
+                            dostep();
+                        }
+                        else {
+                            goback();
+                        }
+                    }else {
+                          if ( process == 0) {
+                            //关全部
+                            if (helloService.selectdevruncount().size()>0 && stop == 0) {
+                                taction = helloService.selectnextprocess(process,1);
+                                dostep();
+                            }
+                            if (errzj>0) {
+                                log.info("控制进程 {} 已执行完成",process);
+                                process =1;
+                                taction = helloService.selectnextprocess(process,(int)((JSONObject)dev_list.get(errzj)).get("error"));
+                                dostep();
+
+                            }
+                            //log.info("{} 控制程序 {} 执行完成",devList.getDevname(),process);
+                        }
+                       if (errzj==0) {
+                           log.info("控制进程 {} 已执行完成",process);
+                       }else {
+                           log.info("关机进程执行完成 , 将进入开机进程");
+                           errzj = 0;
+                       }
+
+
+                    }
+                }
 
                 //handleEvt(pmessage,val);
             } catch (Exception e) {
@@ -575,6 +770,7 @@ public  class anaUtil {
             try {
                 loadAna_v();
                 loadDevList();
+                loadParaList();
                 log.warn("the anatable has been reloaded.");
             } catch (Exception e1) {
                 // TODO Auto-generated catch block
@@ -653,6 +849,17 @@ public  class anaUtil {
                repeat = 1;
                dostep();
            }
+            if ("add".matches(message)) {
+                if ((tmax-tmin)<((Parameter)para_list.get(3)).getValue()) {
+                    log.info("加机条件满足，启动加机进程.");
+                    startZJ();
+                }
+            }
+
+            if ("mid".matches(message)) {
+                log.info("减机条件满足，启动减机进程.");
+                stopOneZJ();
+            }
            /* pmessage = message.replace("_.value","");
             try {
                 log.info(pmessage);

@@ -89,7 +89,7 @@ public  class keepaliveJob implements Job {
 
 		try {
 
-			redisService.set("windlinker", LocalDateTime.now().toString());
+			redisService.get("windlinker");//, LocalDateTime.now().toString());
 
 		}
 

@@ -99,6 +99,10 @@ public interface HelloMapper {
     @Select("SELECT * FROM devlist")
     List<DevList> selectAllDev();
 
+    // 查询全部参数
+    @Select("SELECT * FROM parameter")
+    List<Parameter> selectAllPara();
+
     // 查询定时任务
     @Select("SELECT * FROM timetask")
     List<TimeTask> selectAllTimeTask();
@@ -135,13 +139,19 @@ public interface HelloMapper {
     @Update("UPDATE devlist SET run=#{run} WHERE id=#{id}")
     int updateDevRun(DevList data);
 
+    @Update("UPDATE devlist SET status=#{run} WHERE id=#{id}")
+    int updateDevStatus(DevList data);
+
+    @Update("UPDATE devlist SET error=#{error} WHERE id=#{id}")
+    int updateDevErr(DevList data);
+
     /** 更新 value*/
     @Update("UPDATE hello SET value=#{value} WHERE id=#{id}")
     int updateValue(HelloModel model);
 
     /** 更新 设置设备自判状态为异常*/
     @Update("UPDATE devlist SET myerr=#{value} WHERE id=#{id}")
-    int setDevErr(int value,int id);
+    int setDevErr(int value, int id);
 
     // 根据 ID 删除
     @Delete("DELETE FROM hello WHERE id=#{id}")

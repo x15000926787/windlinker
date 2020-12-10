@@ -22,12 +22,6 @@ spring:
   datasource:
     driver-class-name: org.sqlite.JDBC
     url: jdbc:sqlite:/Users/xuxu/Downloads/windlinker/src/main/db/myDb
-    #url: jdbc:sqlite:/Users/xuxu/Downloads/windlinker-master/src/main/db/myDb
+    #url: jdbc:sqlite:/usr/mydb/myDb
     username: root
     password: root
-#mybatis:
-  #configuration:
-    #log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-#logging:
-  #level:
-    #cn.tellsea.Mapper: DEBUG #包路径为mapper文件包路径
