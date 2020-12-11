@@ -2,25 +2,22 @@ package cn.tellsea.utils;
 
 import cn.tellsea.Model.*;
 import cn.tellsea.service.HelloService;
-import cn.tellsea.service.RedisService;
-import cn.tellsea.service.impl.RedisServiceImpl;
-import com.alibaba.fastjson.JSONArray;
+
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
+
 import org.quartz.TriggerUtils;
 import org.quartz.impl.triggers.CronTriggerImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
+
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.scheduling.support.CronSequenceGenerator;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
-import redis.clients.jedis.Jedis;
-import sun.jvm.hotspot.debugger.posix.elf.ELFSectionHeader;
 
-import javax.rmi.CORBA.Util;
+import redis.clients.jedis.Jedis;
+
+
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import java.text.ParseException;
@@ -28,7 +25,7 @@ import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
+
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -65,7 +62,10 @@ public  class anaUtil {
     public  static  String retkey = "empty";
     public  static  float tmax = -999.9f;
     public  static  float tmin = 999.9f;
+    public  static  float[] data = new float[]{0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f}; //COLDWC_NOW = 0.0f;
+    public  static  float[] data_now = new float[]{0.0f,0.0f,0.0f,0.0f}; //COLDWC_NOW = 0.0f;
 
+    public  static  float[] data_before = new float[]{0.0f,0.0f,0.0f,0.0f};
 
 
     @Value("${sys.returnWT}")
@@ -75,10 +75,30 @@ public  class anaUtil {
     @Value("${sys.outWT}")
     public  String outWT ;
 
+
+    @Value("${sys.coldoutwd}")
+    public  String coldoutwd ;
+    @Value("${sys.coldinwd}")
+    public  String coldinwd ;
+    @Value("${sys.coldoutyl}")
+    public  String coldoutyl ;
+    @Value("${sys.coldinyl}")
+    public  String coldinyl ;
+    @Value("${sys.cooloutwd}")
+    public  String cooloutwd ;
+    @Value("${sys.coolinwd}")
+    public  String coolinwd ;
+    @Value("${sys.cooloutyl}")
+    public  String cooloutyl ;
+    @Value("${sys.coolinyl}")
+    public  String coolinyl ;
+
+
+
     public static int errzj = 0;
 
 
-
+    public   String[] tkeys= new String[] {coldoutwd,coldinwd,coldoutyl,coldinyl,cooloutwd,coolinwd,cooloutyl,coolinyl};
 
 
 
@@ -120,6 +140,9 @@ public  class anaUtil {
         }
         return Logs;
     }*/
+
+
+
 /**
  * 执行Action
  */
@@ -199,8 +222,8 @@ public  class anaUtil {
 
         sleep(5000);
 
-        log.info("发送模拟反馈 {} {}",rkey,process);
-           setRedisVal(rkey,String.valueOf(process));
+       // log.info("发送模拟反馈 {} {}",rkey,process);
+         //  setRedisVal(rkey,String.valueOf(process));
        }else
        {
            //告警，无可用设备
@@ -215,7 +238,67 @@ public  class anaUtil {
        }
     }
 
+    /**
+     * 执行关闭故障泵、变频器Action
+     */
+    public  void  dodevaction(int id,int pro) throws InterruptedException {
 
+
+        devList = helloService.selectdevbyid(id);
+
+        String tkey = null,rkey = null;
+        // log.info(""+helloService.selectdev(1).getId());
+        /*查找目标设备*/
+
+        int ttp = devList.getType();
+        if (Objects.nonNull(devList)) {
+            //log.info(devList.toString());
+
+            zhjno = devList.getId();
+
+            log.info("step  info : 目标设备 ID：{}  名称：{}",zhjno,devList.getDevname());
+            /*查找目标设备控制键*/
+
+            tkey = helloService.selectcontrolkey(zhjno,3).getTkey();
+            log.info("step  info : 目标控制键 {}",tkey);
+            /*查找目标设备控制反馈键*/
+            if (ttp == 4 || ttp == 5)
+            {
+                if (pro==1) rkey = helloService.selectcontrolkey(zhjno, 4).getKkey();
+                else rkey = helloService.selectcontrolkey(zhjno, 5).getKkey();
+            }
+            else {
+                rkey = helloService.selectcontrolkey(zhjno, 0).getKkey();
+            }
+            log.info("step  info : 目标控制反馈键 {}",rkey);
+
+            if (devList.getFresh()!=0)
+            {
+                log.info("step  info : 发送复位命令 {}",devList.getFresh());
+                setRedisVal(tkey,String.valueOf(devList.getFresh()));
+                sleep(3000);
+            }else
+            {
+                //log.info("step {} info : 此设备无复位命令 ",step);
+            }
+
+
+            retkey = rkey;
+            setRedisVal(tkey,String.valueOf(pro==1?devList.getPoweron():devList.getPoweroff()));
+            setRedisProVal("timeout",String.valueOf(repeat),taction.getWait());
+            log.info("step  info : 发送控制命令 {} {}",tkey,process==1?devList.getPoweron():devList.getPoweroff());
+
+            sleep(5000);
+
+           // log.info("发送模拟反馈 {} {}",rkey,process);
+           // setRedisVal(rkey,String.valueOf(process));
+        }else
+        {
+            //告警，无可用设备
+            log.info("step  info : 没找到该设备, 设备ID号 {} ,进程退出.",id);
+
+        }
+    }
     /**
      * 撤销,只考虑开机进程的撤销
      */
@@ -305,6 +388,72 @@ public  class anaUtil {
 
     }
     /**
+     * 调频
+     *
+     */
+    public void calcpl() throws InterruptedException {
+        log.info("调频进程启动......");
+        if (data_now[2]>(JSONObject.toJavaObject((JSONObject)para_list.get(7),Parameter.class)).getValue()){
+            ajust(3,1);
+        }else {
+            ajust(3,-1);
+        }
+        if (data_now[0]>(JSONObject.toJavaObject((JSONObject)para_list.get(6),Parameter.class)).getValue()){
+            ajust(2,1);
+        }else {
+            ajust(2,-1);
+        }
+    }
+    /**
+     * 调频率
+     */
+    public  void  ajust(int type,int vv) throws InterruptedException {
+
+
+        Jedis tjedis= JedisUtil.getInstance().getJedis();
+
+
+        List<DevList> tarlist= helloService.selectdevbytype(type);
+        Float val=0.0f;
+        try {
+            if (type==2) val=Float.parseFloat(tjedis.get("5.4.1.ai_.value"));
+            else val=Float.parseFloat(tjedis.get("5.1.1.ai_.value"));
+            if (vv>0)
+            {
+                val= (val+((JSONObject.toJavaObject((JSONObject)para_list.get(10),Parameter.class)).getValue()));
+            }else
+                val= (val-((JSONObject.toJavaObject((JSONObject)para_list.get(10),Parameter.class)).getValue()));
+            if (val>35 && val<50)
+            {
+                if (type==2)
+                {
+                    tjedis.set("5.4.2.ao_.value",""+val);
+                    tjedis.set("5.4.2.ao_.status","1");
+                    tjedis.set("5.5.2.ao_.value",""+val);
+                    tjedis.set("5.5.2.ao_.status","1");
+                    tjedis.set("5.6.2.ao_.value",""+val);
+                    tjedis.set("5.6.2.ao_.status","1");
+                }
+                if (type==3)
+                {
+                    tjedis.set("5.1.2.ao_.value",""+val);
+                    tjedis.set("5.1.2.ao_.status","1");
+                    tjedis.set("5.2.2.ao_.value",""+val);
+                    tjedis.set("5.2.2.ao_.status","1");
+                    tjedis.set("5.3.2.ao_.value",""+val);
+                    tjedis.set("5.3.2.ao_.status","1");
+                }
+            }
+        }catch (Exception e){}
+
+
+
+
+
+        JedisUtil.getInstance().returnJedis(tjedis);
+
+    }
+    /**
      * 减少一台主机
      */
     public  void  stopOneZJ() throws InterruptedException {
@@ -346,38 +495,41 @@ public  class anaUtil {
         LocalDateTime sdate;
         List<TimeTask> ltask;
         ltask =  helloService.selectofTimeTask(1);
-        for (TimeTask t : ltask) {
-            sdate = LocalDateUtil.dateToLocalDateTime(getcronstr_prv(t.getCronstr()));
+        log.info(ltask.size()+"");
+        if ((ltask.size()>0)) {
+            for (TimeTask t : ltask) {
+                sdate = LocalDateUtil.dateToLocalDateTime(getcronstr_prv(t.getCronstr()));
 
 
-            if (sdate.isAfter(tdate)) {
+                if (sdate.isAfter(tdate)) {
 
-                tdate = sdate;
-                tid = t.getId();
-                val = t.getName();
+                    tdate = sdate;
+                    tid = t.getId();
+                    val = t.getName();
+                }
             }
-        }
-        log.info("最后一条定时开关机任务：{} {}",val,tdate.toString());
-        tk_detial = helloService.selectAllTimeTaskDetial(tid);
-        val = tk_detial.get(0).getVal();
+            log.info("最后一条定时开关机任务：{} {}", val, tdate.toString());
+            tk_detial = helloService.selectAllTimeTaskDetial(tid);
+            val = tk_detial.get(0).getVal();
 
-        cnt = helloService.selectdevruncount().size();
-        if (cnt==0)
-        {
-            log.info("当前没有主机在运行");
-            if (val.matches("1"))
-            {
-                log.info("根据定时任务 {} ,进入开机进程",tk_detial.get(0).getTaskid());
-                startZJ();
+            cnt = helloService.selectdevruncount().size();
+            if (cnt == 0) {
+                log.info("当前没有主机在运行");
+                if (val.matches("1")) {
+                    log.info("根据定时任务 {} ,进入开机进程", tk_detial.get(0).getTaskid());
+                    startZJ();
+                }
+
+            } else {
+                log.info("当前有{}台主机在运行。", cnt);
+                if (val.matches("0")) {
+                    log.info("根据定时任务 {} ,进入关机进程", tk_detial.get(0).getTaskid());
+                    stopZJ();
+                }
             }
-
         }else
         {
-            log.info("当前有{}台主机在运行。",cnt);
-            if (val.matches("0"))
-            {
-                log.info("根据定时任务 {} ,进入关机进程",tk_detial.get(0).getTaskid());
-            }
+            log.info("当前没有定时任务。");
         }
     };
     public    void loadAna_v(){
@@ -606,7 +758,7 @@ public  class anaUtil {
                         if (vv<tmin) tmin = vv;
                     }else
                     {
-                        if (vv > ((Parameter)para_list.get(1)).getValue())
+                        if (vv > ((JSONObject.toJavaObject((JSONObject)para_list.get(1),Parameter.class)).getValue()))
                         {
                             tmax = -999.9f;
                             tmin = 999.9f;
@@ -620,7 +772,7 @@ public  class anaUtil {
                     {
                         log.warn(message + ":" + e.toString());
                     }
-                    if (vv<((Parameter)para_list.get(1)).getValue() && (vv-vs)<2)
+                    if (vv<(JSONObject.toJavaObject((JSONObject)para_list.get(1),Parameter.class)).getValue() && (vv-vs)<2)
                     {
                         tjedis.set("mid","1","NX","EX",300);
                     }else
@@ -684,12 +836,24 @@ public  class anaUtil {
 
                                             }
                                             break;
+                                        case 2:
+                                            log.info("{}带故障运行，关闭，开启备用", dev.getDevname());
+                                            break;
                                         case 4:
-
+                                            log.info("{}带故障运行，关闭主机，重新开启一台", dev.getDevname());
+                                            errzj = dev.getRun();
+                                            process = 0;
+                                            taction = helloService.selectnextprocess(process, 1);
+                                            stopOneZJ();
                                             break;
                                         case 5:
-
+                                            log.info("{}带故障运行，关闭主机，重新开启一台", dev.getDevname());
+                                            errzj = dev.getRun();
+                                            process = 0;
+                                            taction = helloService.selectnextprocess(process, 1);
+                                            stopOneZJ();
                                             break;
+
                                         default:
                                             break;
                                     }
@@ -850,7 +1014,7 @@ public  class anaUtil {
                dostep();
            }
             if ("add".matches(message)) {
-                if ((tmax-tmin)<((Parameter)para_list.get(3)).getValue()) {
+                if ((tmax-tmin)<(JSONObject.toJavaObject((JSONObject)para_list.get(3),Parameter.class)).getValue()) {
                     log.info("加机条件满足，启动加机进程.");
                     startZJ();
                 }

@@ -55,8 +55,41 @@ public class KeyExpiredListener  implements MessageListener {
     public void onMessage(Message message, byte[] bytes) {
         byte[] body = message.getBody();// 建议使用: valueSerializer
         byte[] channel = message.getChannel();
+
+
+
+        /*try {
+
+
+
+            // log.info(new String(body));
+
+            //log.info(anaUtil.objana_v.toJSONString());
+            {
+                try {
+                    if (new String(channel).contains("expired") ) {
+                        //logger.warn(message);
+                        anautil.handleExpired(new String(body));
+                    }
+                    else {
+
+
+                        //log.warn(new String(body));
+                        anautil.handleMessage(new String(body));
+
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    log.info(e.toString());
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }*/
+
         //log.info(String.format("channel: %s, body: %s, bytes: %s",new String(channel), new String(body), new String(bytes)));
-        Runnable noArguments = () -> {
+       Runnable noArguments = () -> {
             try {
 
 

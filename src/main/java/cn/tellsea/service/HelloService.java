@@ -79,6 +79,9 @@ public class HelloService {
     public  DevList selectdev(int type) {
         return dao.selectdev(type);
     }
+    public  List<DevList> selectdevbytype(int type) {
+        return dao.selectDevbyType(type);
+    }
     public  DevList selectdev4s(int type) {
         return dao.selectdev4s(type);
     }

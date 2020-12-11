@@ -48,7 +48,7 @@ public class JedisUtil {
     //private static String ADDR = "218.78.29.130";
     //@Value("${spring.redis.host}")
 
-    private static String ADDR="58.247.132.78";// = properutil.getProperty("redis_ip");
+    private static String ADDR="192.168.3.103";// = properutil.getProperty("redis_ip");
     //Redis的端口号
     //@Value("${spring.redis.port}")
     private static int PORT =6389;//= Integer.parseInt(properutil.getProperty("redis_port"));
@@ -89,7 +89,7 @@ public class JedisUtil {
     public Jedis getJedis() {
 
         Jedis tjedis =jedisPool.getResource();
-        tjedis.select(11);
+        tjedis.select(0);
         return tjedis;
     }
     /**

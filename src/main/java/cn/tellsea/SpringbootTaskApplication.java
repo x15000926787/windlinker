@@ -2,15 +2,14 @@ package cn.tellsea;
 
 
 
+import cn.tellsea.Model.DataList;
+import cn.tellsea.Model.DevList;
 import cn.tellsea.Model.TimeTask;
 import cn.tellsea.component.FirstClass;
 
-import cn.tellsea.quartz.LuaJob;
-import cn.tellsea.quartz.QuartzJob;
-import cn.tellsea.quartz.QuartzManager;
+import cn.tellsea.quartz.*;
 
 
-import cn.tellsea.quartz.keepaliveJob;
 import cn.tellsea.service.HelloService;
 import cn.tellsea.service.RedisService;
 import cn.tellsea.task.UpdateDataJob;
@@ -24,7 +23,12 @@ import org.springframework.boot.CommandLineRunner;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Pipeline;
+import redis.clients.jedis.Response;
+import redis.clients.jedis.exceptions.JedisConnectionException;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.*;
@@ -56,13 +60,14 @@ public class SpringbootTaskApplication implements CommandLineRunner {
     private HelloService helloService;
     /*@Autowired
     private RedisService redisService;*/
-    @Autowired
-    private FirstClass firstClass;
+    /*@Autowired
+    private FirstClass firstClass;*/
     @Autowired
     private  anaUtil anautil;
-    @Autowired
-    private UpdateDataJob updateDataJob;
-
+   /* @Autowired
+    private UpdateDataJob updateDataJob;*/
+    public DataList dat;
+    public DevList dev;
     public static void main(String[] args) {
         new SpringApplicationBuilder(SpringbootTaskApplication.class).run(args);
               //  .web(WebApplicationType.NONE)
@@ -136,7 +141,148 @@ public class SpringbootTaskApplication implements CommandLineRunner {
 
 
         /***********************刷新实时数据******************/
-        firstClass.redis_executor.execute(updateDataJob);
+        //firstClass.redis_executor.execute(updateDataJob);
+
+
+        String luaStr = null,tkey = null;
+        Jedis jedis = null;
+        Map<String, Response<String>> responses = null;
+        Pipeline p = null;
+        log.info("refresh data...");
+
+        responses = new HashMap<String,Response<String>>(anautil.objana_v.keySet().size());
+
+
+
+        try {
+            jedis= JedisUtil.getInstance().getJedis();
+
+            p = jedis.pipelined();
+            for(String key1 : anautil.objana_v.keySet()) {
+
+                responses.put(key1, p.get(((JSONObject)anautil.objana_v.get(key1)).get("kkey")+"_.value"));
+
+            }
+
+            try {
+                if (p!=null)  p.sync();
+            }
+            catch (JedisConnectionException e) {
+                log.error("lua err: " +  e.toString() );
+                e.printStackTrace();
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+
+            for(String k : responses.keySet()) {
+
+                {
+                    try {
+                        luaStr = responses.get(k).get().toString();
+                        log.warn("read redis: "+(k) +"  " + luaStr );
+                        dat = JSONObject.toJavaObject((JSONObject)anautil.objana_v.getJSONObject(k),DataList.class);
+                        dev = JSONObject.toJavaObject((JSONObject)anautil.dev_list.getJSONObject(String.valueOf(dat.getPid())),DevList.class);
+                        //log.info(dat.toString());
+                        //log.info(dev.toString());
+                        switch(dat.getType()){
+                            case 0 :
+                                dev.setRun(Integer.parseInt(luaStr));
+                                anautil.objana_v.getJSONObject(k).put("run",luaStr);
+                                helloService.updateDevRun(dev);
+                                break; //可选
+                            case 1 :
+                                dev.setError(Integer.parseInt(luaStr));
+                                anautil.objana_v.getJSONObject(k).put("error",luaStr);
+                                helloService.updateDevErr(dev);
+                                break; //可选
+                            case 2 :
+                                dev.setStatus(Integer.parseInt(luaStr));
+                                anautil.objana_v.getJSONObject(k).put("status",luaStr);
+                                helloService.updateDevStatus(dev);
+                                break; //可选
+                            case 8 :
+                                dev.setStatus(Integer.parseInt(luaStr));
+                                anautil.objana_v.getJSONObject(k).put("runtime",luaStr);
+                                helloService.updateDevTime(dev);
+                                break; //可选
+
+                            default : //可选
+                                
+                        }
+                        tkey = ((JSONObject)anautil.objana_v.get(k)).get("kkey").toString();
+                        if ((anautil.coldoutwd.matches(tkey))){
+                            anaUtil.data[0] = Float.parseFloat(luaStr);
+                        }
+                        if ((anautil.coldinwd.matches(tkey))){
+                            anaUtil.data[1] = Float.parseFloat(luaStr);
+                        }
+                        if ((anautil.coldinyl.matches(tkey))){
+                            anaUtil.data[2] = Float.parseFloat(luaStr);
+                        }
+                        if ((anautil.coldoutyl.matches(tkey))){
+                            anaUtil.data[3] = Float.parseFloat(luaStr);
+                        }
+                        if ((anautil.coolinwd.matches(tkey))){
+                            anaUtil.data[4] = Float.parseFloat(luaStr);
+                        }
+                        if ((anautil.cooloutwd.matches(tkey))){
+                            anaUtil.data[5] = Float.parseFloat(luaStr);
+                        }
+                        if ((anautil.coolinyl.matches(tkey))){
+                            anaUtil.data[6] = Float.parseFloat(luaStr);
+                        }
+                        if ((anautil.coldoutyl.matches(tkey))){
+                            anaUtil.data[7] = Float.parseFloat(luaStr);
+                        }
+
+
+                    } catch (Exception e) {
+
+                    }
+                }
+            }
+            for (int i=0;i<4;i++)
+            {
+                anaUtil.data_now[i] = anaUtil.data[i*2+1]-anaUtil.data[i*2];
+            }
+            anautil.calcpl();
+            try {
+                p.close();
+            }catch (IOException ee){}
+
+
+
+            JedisUtil.getInstance().returnJedis(jedis);
+
+            responses.clear();
+
+
+            luaStr = null;
+
+            responses = null;
+            p = null;//jedis.pipelined();
+
+
+        }
+
+        catch (JedisConnectionException e) {
+            e.printStackTrace();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+
+
+
+
+
+
+
+
         QuartzManager.addJob("keepRedisAlive" , keepaliveJob.class, "*/30 * * * * ? *");
 
         /**********************开启定时任务*******************/
@@ -147,6 +293,7 @@ public class SpringbootTaskApplication implements CommandLineRunner {
             tasktype1 = helloService.selectAllTimeTask();
 
             for (TimeTask tmap : tasktype1) {
+
 
                 Map<String, Integer> maps=new HashMap<>();
                 switch (((Integer)tmap.getType()).intValue()) {
@@ -166,6 +313,10 @@ public class SpringbootTaskApplication implements CommandLineRunner {
                         fmap.put("luaname", tmap.getLuaname());
                         log.warn("定时脚本任务:" + tmap.getCronstr() + fmap.toString());
                         QuartzManager.addJob("ljob" + tmap.getId(), LuaJob.class, tmap.getCronstr(), fmap);
+                        break;
+                    case 4:
+                        QuartzManager.addJob("ljob" + tmap.getId(), calcJob.class, tmap.getCronstr(), tmap);
+                        log.warn("定时调频任务:" + tmap.getCronstr() + tmap.toString());
                         break;
 
 

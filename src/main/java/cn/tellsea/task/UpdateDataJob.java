@@ -1,18 +1,18 @@
 package cn.tellsea.task;
 
+import cn.tellsea.Model.DataList;
+import cn.tellsea.Model.DevList;
+import cn.tellsea.Model.Parameter;
 import cn.tellsea.utils.JedisUtil;
 import cn.tellsea.utils.anaUtil;
 import com.alibaba.fastjson.JSONObject;
 
-import com.google.gson.Gson;
-
-
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.jdbc.core.support.JdbcDaoSupport;
+
 import org.springframework.stereotype.Component;
+
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Response;
@@ -21,7 +21,6 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 import javax.script.ScriptException;
 import java.io.IOException;
 import java.util.*;
-import java.util.regex.Pattern;
 
 /**
  * [任务类]
@@ -40,8 +39,10 @@ public  class UpdateDataJob implements Runnable {
 	   
 	//public static ChatSocket ckt = new ChatSocket();
 	  // RedisUtil jpool = new RedisUtil();
-	
-	
+
+
+	public DataList dat;
+	public DevList dev;
 
 
 	   // public static final Logger logger = LogManager.getLogger(UpdateDataJob.class);
@@ -142,164 +143,136 @@ public  class UpdateDataJob implements Runnable {
 	     * 读取定时锁状态
 	     *
 		 */
-	  public void get_time_lock()
+	  public void prepare()
 	  {
 
-		 /* List<Map<String, Object>> tasktype1 = new ArrayList<Map<String, Object>>();
-		  String sql = "SELECT * from do_info where timeTaskLock is not null";
-		  tasktype1= dbcon.queryforList(sql);
 
-
-		  int size=tasktype1.size() ;
-		  if (size> 0)
-		  {
-
-			  for (int i = 0; i<size; i++)
-			  {
-
-				  Map listData = (Map)tasktype1.get(i);
-				  result.put((listData.get("kkey").toString()+".lock"),listData.get("timeTaskLock").toString());
-				  kk = listData.get("kkey").toString().split(",")[0];
-				  if (umap.containsKey(kk))
-				  {
-				  	((Map)umap.get(kk)).put((listData.get("kkey").toString()+".lock"),listData.get("timeTaskLock").toString());
-				  }
-				  else {
-					  Map<String,String> nvl = new HashMap<String,String>();
-					  nvl.put((listData.get("kkey").toString()+".lock"),listData.get("timeTaskLock").toString());
-				  	 umap.put(kk,nvl);
-				  }
-			  }
-
-
-		  }*/
 
 	  }
 
     @Override
     public void run()  {
-
-		 String s = null;
-
-		  String luaStr = null;
-
-
-
-		 String pattern=null;
-
-
-
-
+	  	String luaStr = null;
 		Jedis jedis = null;
+		Map<String, Response<String>> responses = null;
+		Pipeline p = null;
+		log.info("calc ...");
 
-		// DBConnection dbcon=null;//new DBConnection();
-		  Map<String,String> result = null;
-		 Map umap=null;
-		  Map<String,Response<String>> responses = null;
-		Pipeline p = null;//jedis.pipelined();
-		//Set<String> sinter_yc= null;//anaobj.keySet();
-
-
-		pattern=".*_.value*";
-
-		//HashMap<String,String>  map = new HashMap<String,String>();
-
-
-		//logger.error("ask data...");
-
-		   responses = new HashMap<String,Response<String>>(anautil.objana_v.keySet().size());
-
-
-	      
-			try {
-				 jedis= JedisUtil.getInstance().getJedis();
-				
-				 p = jedis.pipelined();
-				
-
-
-		       
-
-		        for(String key1 : anautil.objana_v.keySet()) {
-
-		         responses.put(key1, p.get(key1));
-
-		        }
-				//logger.error("ask data 1...");
-		        try {
-		         if (p!=null)  p.sync();
-		        }
-				catch (JedisConnectionException e) {
-					log.error("lua err: " +  e.toString() );
-		            e.printStackTrace();
-		        }
-		        catch (Exception e) 
-				 {
-				 e.printStackTrace();
-				 }
-				//添加实时ai,di 到json字符串中
-				//logger.warn(responses);
-				for(String k : responses.keySet()) {
-                    //logger.warn(k);
-					//if (Pattern.matches(pattern, k))
-					{
-						try {
-
-							log.warn("lua err: "+(k) +  responses.get(k).get().toString() );
-							luaStr = responses.get(k).get().toString();
- 							anautil.objana_v.getJSONObject(k).put("value",luaStr);
-
-						} catch (Exception e) {
-
-						}
-					}
-				}
-
-				try {
-					p.close();
-				}catch (IOException ee){}
+		responses = new HashMap<String,Response<String>>(anautil.objana_v.keySet().size());
 
 
 
-				JedisUtil.getInstance().returnJedis(jedis);
-				// dbcon.getClose();
-		         responses.clear();
+		try {
+			jedis= JedisUtil.getInstance().getJedis();
 
+			p = jedis.pipelined();
+			for(String key1 : anautil.tkeys) {
 
+				responses.put(key1, p.get(key1+"_.value"));
 
-
-
-				// RedisUtil jpool = new RedisUtil();
-
-
-
-				 s = null;
-
-				 luaStr = null;
-
-
-
-				 pattern=null;
-
-
-
-				 umap=null;
-				 responses = null;
-				 p = null;//jedis.pipelined();
-				 //anaobj =null;
-				// sinter_yc= null;//anaobj.keySet();
-
-			 } 
-			
-			catch (JedisConnectionException e) {
-	            e.printStackTrace();
-	        } 
-			 catch (Exception e) {
-		            e.printStackTrace();
 			}
 
-		//logger.warn("end update_data.");
+			try {
+				if (p!=null)  p.sync();
+			}
+			catch (JedisConnectionException e) {
+				log.error("lua err: " +  e.toString() );
+				e.printStackTrace();
+			}
+			catch (Exception e)
+			{
+				e.printStackTrace();
+			}
 
-    }
+			for(String tkey : responses.keySet()) {
+
+				{
+					try {
+						luaStr = responses.get(tkey).get().toString();
+						log.warn("read redis: "+(tkey) +"  " + luaStr );
+
+
+						if ((anautil.coldoutwd.matches(tkey))){
+							anaUtil.data[0] = Float.parseFloat(luaStr);
+						}
+						if ((anautil.coldinwd.matches(tkey))){
+							anaUtil.data[1] = Float.parseFloat(luaStr);
+						}
+						if ((anautil.coldoutyl.matches(tkey))){
+							anaUtil.data[2] = Float.parseFloat(luaStr);
+						}
+						if ((anautil.coldinyl.matches(tkey))){
+							anaUtil.data[3] = Float.parseFloat(luaStr);
+						}
+						if ((anautil.cooloutwd.matches(tkey))){
+							anaUtil.data[4] = Float.parseFloat(luaStr);
+						}
+						if ((anautil.coolinwd.matches(tkey))){
+							anaUtil.data[5] = Float.parseFloat(luaStr);
+						}
+						if ((anautil.cooloutyl.matches(tkey))){
+							anaUtil.data[6] = Float.parseFloat(luaStr);
+						}
+						if ((anautil.coldinyl.matches(tkey))){
+							anaUtil.data[7] = Float.parseFloat(luaStr);
+						}
+
+
+
+
+					} catch (Exception e) {
+
+					}
+				}
+			}
+			for (int i=0;i<4;i++)
+			{
+				anaUtil.data_now[i] = anaUtil.data[i*2+1]-anaUtil.data[i*2];
+			}
+			//冻温，冻压，却温，却压
+			if ((anaUtil.data_now[1]-anaUtil.data_before[1])>((Parameter)anautil.para_list.get(8)).getValue())
+			{
+				anautil.ajust(2,-1);
+			}
+			//冻温，冻压，却温，却压
+			if ((anaUtil.data_now[0]-anaUtil.data_before[0])>((Parameter)anautil.para_list.get(6)).getValue())
+			{
+				anautil.ajust(2,1);
+			}
+
+			try {
+				p.close();
+			}catch (IOException ee){}
+
+
+
+			JedisUtil.getInstance().returnJedis(jedis);
+
+			responses.clear();
+
+
+			luaStr = null;
+
+			responses = null;
+			p = null;//jedis.pipelined();
+
+
+		}
+
+		catch (JedisConnectionException e) {
+			e.printStackTrace();
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+
+
+
+
+
+
+
+
+	}
     	
 }

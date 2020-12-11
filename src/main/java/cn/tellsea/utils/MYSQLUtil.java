@@ -12,7 +12,7 @@ import java.util.Optional;
 public class MYSQLUtil {
     private static void execute() throws ClassNotFoundException, SQLException {
         Class.forName("com.mysql.cj.jdbc.Driver");
-        @Cleanup Connection connection = DriverManager.getConnection("jdbc:mysql://58.247.132.78:3306/scada", "root", "Shcs2017@");
+        @Cleanup Connection connection = DriverManager.getConnection("jdbc:mysql://.58.247.132.78:3306/scada", "root", "Shcs2017@");
         @Cleanup PreparedStatement preparedStatement = connection.prepareStatement("select * from prtu");
         @Cleanup ResultSet resultSet = preparedStatement.executeQuery();
         //Student student = null;

@@ -98,6 +98,9 @@ public interface HelloMapper {
     // 查询全部设备
     @Select("SELECT * FROM devlist")
     List<DevList> selectAllDev();
+    // 查询全部设备
+    @Select("SELECT * FROM devlist where type=#{type}")
+    List<DevList> selectDevbyType(int type);
 
     // 查询全部参数
     @Select("SELECT * FROM parameter")

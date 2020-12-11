@@ -1,12 +1,12 @@
 spring:
   redis:
-    database: 11
-    host: 58.247.132.78
+    database: 0
+    host: 192.168.3.103
     port: 6389
     password: Shcs123
     timeout: 8000
   jedis:
-    host: 58.247.132.78
+    host: 192.168.3.103
     password: Shcs123
     port: 6389
     timeout: 8000
@@ -20,8 +20,8 @@ spring:
     cache: false
 
   datasource:
-    driver-class-name: org.sqlite.JDBC
-    url: jdbc:sqlite:/Users/xuxu/Downloads/windlinker/src/main/db/myDb
-    #url: jdbc:sqlite:/usr/mydb/myDb
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://58.247.132.78:3306/mytestdb?useUnicode=true&characterEncoding=utf8&serverTimezone=GMT%2B8
     username: root
-    password: root
+    password: Shcs2017@
+    type: com.alibaba.druid.pool.DruidDataSource
