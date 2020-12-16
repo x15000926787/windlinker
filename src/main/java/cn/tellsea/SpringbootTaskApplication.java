@@ -159,8 +159,8 @@ public class SpringbootTaskApplication implements CommandLineRunner {
 
             p = jedis.pipelined();
             for(String key1 : anautil.objana_v.keySet()) {
-
-                responses.put(key1, p.get(((JSONObject)anautil.objana_v.get(key1)).get("kkey")+"_.value"));
+                //log.info(((JSONObject)anautil.objana_v.get(key1)).get("kkey").toString());
+                responses.put(key1, p.get(((JSONObject)anautil.objana_v.get(key1)).get("kkey").toString()+"_.value"));
 
             }
 
@@ -181,11 +181,13 @@ public class SpringbootTaskApplication implements CommandLineRunner {
                 {
                     try {
                         luaStr = responses.get(k).get().toString();
-                        log.warn("read redis: "+(k) +"  " + luaStr );
+                       // log.info(k);
+                        tkey = ((JSONObject)anautil.objana_v.get(k)).get("kkey").toString();
+                        log.warn("read redis: "+(tkey) +"  " + luaStr );
                         dat = JSONObject.toJavaObject((JSONObject)anautil.objana_v.getJSONObject(k),DataList.class);
                         dev = JSONObject.toJavaObject((JSONObject)anautil.dev_list.getJSONObject(String.valueOf(dat.getPid())),DevList.class);
-                        //log.info(dat.toString());
-                        //log.info(dev.toString());
+                        log.info(dat.toString());
+                        log.info(dev.toString());
                         switch(dat.getType()){
                             case 0 :
                                 dev.setRun(Integer.parseInt(luaStr));
@@ -203,15 +205,18 @@ public class SpringbootTaskApplication implements CommandLineRunner {
                                 helloService.updateDevStatus(dev);
                                 break; //可选
                             case 8 :
-                                dev.setStatus(Integer.parseInt(luaStr));
+                                dev.setRuntime(Float.parseFloat(luaStr));
+                                log.info(dat.toString());
+                                log.info(dev.toString());
                                 anautil.objana_v.getJSONObject(k).put("runtime",luaStr);
                                 helloService.updateDevTime(dev);
                                 break; //可选
 
                             default : //可选
+                                break;
                                 
                         }
-                        tkey = ((JSONObject)anautil.objana_v.get(k)).get("kkey").toString();
+
                         if ((anautil.coldoutwd.matches(tkey))){
                             anaUtil.data[0] = Float.parseFloat(luaStr);
                         }
@@ -237,11 +242,13 @@ public class SpringbootTaskApplication implements CommandLineRunner {
                             anaUtil.data[7] = Float.parseFloat(luaStr);
                         }
 
+                        anautil.handleMessage(tkey+"_.value");
 
                     } catch (Exception e) {
 
                     }
                 }
+
             }
             for (int i=0;i<4;i++)
             {

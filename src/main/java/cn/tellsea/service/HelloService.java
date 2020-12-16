@@ -108,6 +108,10 @@ public class HelloService {
     public  List<DataList> selectAllData() {
         return dao.selectAllData();
     }
+    public  List<DataList> selectDatabytype(int pid,int type) {
+        return dao.selectDatabytp(pid,type);
+    }
+
 
 
 }

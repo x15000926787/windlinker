@@ -13,7 +13,7 @@ public class DevList {
 
     @Override
     public String toString() {
-        return id+":{" +
+        return "'"+id+"':{" +
                 " id:" + id +
                 ", devname:'" + devname + '\'' +
                 ", type:" + type +
@@ -25,6 +25,8 @@ public class DevList {
                 ", runtime:" + runtime +
                 ", poweron:" + poweron +
                 ", poweroff:" + poweroff +
+                ", reton:" + reton +
+                ", retoff:" + retoff +
                 ", fresh:" + fresh +
                 '}';
     }
@@ -126,6 +128,22 @@ public class DevList {
         this.poweron = poweron;
     }
 
+    public int getReton() {
+        return reton;
+    }
+
+    public void setReton(int reton) {
+        this.reton = reton;
+    }
+
+    public int getRetoff() {
+        return retoff;
+    }
+
+    public void setRetoff(int retoff) {
+        this.retoff = retoff;
+    }
+
     public int getPoweroff() {
         return poweroff;
     }
@@ -136,6 +154,8 @@ public class DevList {
 
     public int poweron;
     public int poweroff;
+    public int reton;
+    public int retoff;
     public int fresh;
 
 

@@ -4,6 +4,7 @@ import cn.tellsea.Model.*;
 import cn.tellsea.service.HelloService;
 
 import com.alibaba.fastjson.JSONObject;
+import com.sun.corba.se.impl.ior.OldJIDLObjectKeyTemplate;
 import lombok.extern.slf4j.Slf4j;
 
 import org.quartz.TriggerUtils;
@@ -60,6 +61,7 @@ public  class anaUtil {
     public  static  int  stop= -1;        //标记关机度 ，0：关闭所有在运行的主机，1：关闭一台
     public  static  int tzjno= -1;       //在关机进程中记录关闭的主机的ID
     public  static  String retkey = "empty";
+    public  static  String retVal = "0";
     public  static  float tmax = -999.9f;
     public  static  float tmin = 999.9f;
     public  static  float[] data = new float[]{0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f}; //COLDWC_NOW = 0.0f;
@@ -68,12 +70,10 @@ public  class anaUtil {
     public  static  float[] data_before = new float[]{0.0f,0.0f,0.0f,0.0f};
 
 
-    @Value("${sys.returnWT}")
-    public  String retWT ;
+
     @Value("${sys.msguser}")
     public  String msguser ;
-    @Value("${sys.outWT}")
-    public  String outWT ;
+
 
 
     @Value("${sys.coldoutwd}")
@@ -93,6 +93,13 @@ public  class anaUtil {
     @Value("${sys.coolinyl}")
     public  String coolinyl ;
 
+    @Value("${sys.coldpl}")
+    public  String coldpl ;
+    @Value("${sys.coolpl}")
+    public  String coolpl ;
+
+    @Value("${sys.reset}")
+    public  int wait ;
 
 
     public static int errzj = 0;
@@ -149,13 +156,16 @@ public  class anaUtil {
     public  void  dostep() throws InterruptedException {
 
          step = taction.getStep();
+         List<DevList> run = helloService.selectdevruncount();
+         int cnt = run.size();
         //ActionDetial actionDetial=null;
         //actionDetial = helloService.selectnextprocess(process,step);
-
+        log.info(taction.getName());
         int ttp = taction.getTargettype();
         String tkey = null,rkey = null;
-       // log.info(""+helloService.selectdev(1).getId());
+        //log.info(""+helloService.selectdev(1).getId());
         /*查找目标设备*/
+
         try {
             if (process ==1) {
                 if (ttp == 4 || ttp == 5)
@@ -186,6 +196,7 @@ public  class anaUtil {
        if (Objects.nonNull(devList)) {
            //log.info(devList.toString());
 
+
         zhjno = devList.getId();
 
         log.info("step {} info : 目标设备 ID：{}  名称：{}",step,zhjno,devList.getDevname());
@@ -204,11 +215,11 @@ public  class anaUtil {
         }
         log.info("step {} info : 目标控制反馈键 {}",step,rkey);
 
-        if (devList.fresh!=0)
+        if (devList.fresh!=0 && process!=0)
         {
             log.info("step {} info : 发送复位命令 {}",step,devList.getFresh());
             setRedisVal(tkey,String.valueOf(devList.getFresh()));
-            sleep(3000);
+            sleep(wait);
         }else
         {
             //log.info("step {} info : 此设备无复位命令 ",step);
@@ -216,14 +227,22 @@ public  class anaUtil {
 
 
         retkey = rkey;
+           if (devList.getType()>3) {
+               retVal = String.valueOf((process+1)%2);
+           }else if (devList.getType()==1){
+               retVal = String.valueOf((process+1));
+           }
+           else
+               retVal = String.valueOf(process);
+
         setRedisVal(tkey,String.valueOf(process==1?devList.getPoweron():devList.getPoweroff()));
         setRedisProVal("timeout",String.valueOf(repeat),taction.getWait());
         log.info("step {} info : 发送控制命令 {} {}",step,tkey,process==1?devList.getPoweron():devList.getPoweroff());
 
         sleep(5000);
 
-       // log.info("发送模拟反馈 {} {}",rkey,process);
-         //  setRedisVal(rkey,String.valueOf(process));
+        log.info("发送模拟反馈 {} {}",rkey,retVal);
+           setRedisVal(rkey,retVal);
        }else
        {
            //告警，无可用设备
@@ -238,9 +257,9 @@ public  class anaUtil {
        }
     }
 
-    /**
+   /* *//**
      * 执行关闭故障泵、变频器Action
-     */
+     *//*
     public  void  dodevaction(int id,int pro) throws InterruptedException {
 
 
@@ -248,7 +267,7 @@ public  class anaUtil {
 
         String tkey = null,rkey = null;
         // log.info(""+helloService.selectdev(1).getId());
-        /*查找目标设备*/
+        *//*查找目标设备*//*
 
         int ttp = devList.getType();
         if (Objects.nonNull(devList)) {
@@ -257,11 +276,11 @@ public  class anaUtil {
             zhjno = devList.getId();
 
             log.info("step  info : 目标设备 ID：{}  名称：{}",zhjno,devList.getDevname());
-            /*查找目标设备控制键*/
+            *//*查找目标设备控制键*//*
 
             tkey = helloService.selectcontrolkey(zhjno,3).getTkey();
             log.info("step  info : 目标控制键 {}",tkey);
-            /*查找目标设备控制反馈键*/
+            *//*查找目标设备控制反馈键*//*
             if (ttp == 4 || ttp == 5)
             {
                 if (pro==1) rkey = helloService.selectcontrolkey(zhjno, 4).getKkey();
@@ -290,15 +309,15 @@ public  class anaUtil {
 
             sleep(5000);
 
-           // log.info("发送模拟反馈 {} {}",rkey,process);
-           // setRedisVal(rkey,String.valueOf(process));
+            log.info("发送模拟反馈 {} {}",rkey,process);
+            setRedisVal(rkey,String.valueOf(process));
         }else
         {
             //告警，无可用设备
             log.info("step  info : 没找到该设备, 设备ID号 {} ,进程退出.",id);
 
         }
-    }
+    }*/
     /**
      * 撤销,只考虑开机进程的撤销
      */
@@ -343,6 +362,11 @@ public  class anaUtil {
 
 
                 retkey = rkey;
+                if (devList.getType()>3||devList.getType()==1) {
+                    retVal = String.valueOf((process+1)%2);
+                }else
+                    retVal = String.valueOf(process);
+
                 setRedisVal(tkey, String.valueOf(process == 1 ? devList.getPoweron() : devList.getPoweroff()));
                 setRedisProVal("timeout", String.valueOf(repeat), taction.getWait());
                 log.info("goback info : 发送控制命令 {} {}",  tkey, process == 1 ? devList.getPoweron() : devList.getPoweroff());
@@ -364,15 +388,17 @@ public  class anaUtil {
         helloService.resetmyerr();
         process = 1;
         taction = helloService.selectnextprocess(process,1);;
-
+//log.info(taction.getName());
 
         dostep();
 
         //log.info("");
     }
+
     /**
      * 关闭主机
      */
+
     public  void  stopZJ() throws InterruptedException {
 
         log.info("关机进程启动......");
@@ -392,7 +418,7 @@ public  class anaUtil {
      *
      */
     public void calcpl() throws InterruptedException {
-        log.info("调频进程启动......");
+        //
         if (data_now[2]>(JSONObject.toJavaObject((JSONObject)para_list.get(7),Parameter.class)).getValue()){
             ajust(3,1);
         }else {
@@ -409,24 +435,36 @@ public  class anaUtil {
      */
     public  void  ajust(int type,int vv) throws InterruptedException {
 
+        //
+        log.info("调频进程启动");
 
         Jedis tjedis= JedisUtil.getInstance().getJedis();
 
-
-        List<DevList> tarlist= helloService.selectdevbytype(type);
+        List<DataList> tarlist = helloService.selectDatabytype(16,type);
+        //List<DevList> tarlist= helloService.selectdevbytype(type);
         Float val=0.0f;
         try {
-            if (type==2) val=Float.parseFloat(tjedis.get("5.4.1.ai_.value"));
-            else val=Float.parseFloat(tjedis.get("5.1.1.ai_.value"));
+            if (type==2) val=Float.parseFloat(tjedis.get(coldpl));
+            else val=Float.parseFloat(tjedis.get(coolpl));
             if (vv>0)
             {
                 val= (val+((JSONObject.toJavaObject((JSONObject)para_list.get(10),Parameter.class)).getValue()));
             }else
                 val= (val-((JSONObject.toJavaObject((JSONObject)para_list.get(10),Parameter.class)).getValue()));
+
             if (val>35 && val<50)
             {
-                if (type==2)
+                if (Objects.nonNull(tarlist)){
+                    for (DataList dl :tarlist)
+                    {
+                        log.info(dl.getTkey()+","+String.valueOf(val));
+                        tjedis.set(dl.getTkey()+"_.value",String.valueOf(val));
+                        tjedis.set(dl.getTkey()+"_.status",String.valueOf(1));
+                    }
+                }
+                /*if (type==2)
                 {
+                    tarlist = null;// helloService.selectDcfDev()
                     tjedis.set("5.4.2.ao_.value",""+val);
                     tjedis.set("5.4.2.ao_.status","1");
                     tjedis.set("5.5.2.ao_.value",""+val);
@@ -442,7 +480,7 @@ public  class anaUtil {
                     tjedis.set("5.2.2.ao_.status","1");
                     tjedis.set("5.3.2.ao_.value",""+val);
                     tjedis.set("5.3.2.ao_.status","1");
-                }
+                }*/
             }
         }catch (Exception e){}
 
@@ -482,6 +520,40 @@ public  class anaUtil {
     }
 
     /**
+     * 关闭一台水泵，启动备用
+     */
+    public  void  stopTheB(DevList tdev) throws InterruptedException {
+        String tkey;
+        DevList sdev;
+
+
+
+        log.info("开泵进程启动......");
+
+        sdev = helloService.selectdev(tdev.getType());
+
+        tkey = helloService.selectcontrolkey(sdev.getId(),3).getTkey();
+
+        setRedisVal(tkey,"1");
+        sleep(wait);
+        setRedisVal(tkey,"1");
+        sleep(wait);
+        setRedisVal(tkey,"1");
+
+        log.info("关泵进程启动......");
+
+        tkey = helloService.selectcontrolkey(tdev.getId(),3).getTkey();
+
+        setRedisVal(tkey,"0");
+        sleep(wait);
+        setRedisVal(tkey,"0");
+        sleep(wait);
+        setRedisVal(tkey,"0");
+
+
+    }
+
+    /**
      * 自检
      * @throws ParseException
      * @throws InterruptedException
@@ -495,7 +567,7 @@ public  class anaUtil {
         LocalDateTime sdate;
         List<TimeTask> ltask;
         ltask =  helloService.selectofTimeTask(1);
-        log.info(ltask.size()+"");
+       // log.info(ltask.size()+"");
         if ((ltask.size()>0)) {
             for (TimeTask t : ltask) {
                 sdate = LocalDateUtil.dateToLocalDateTime(getcronstr_prv(t.getCronstr()));
@@ -559,7 +631,7 @@ public  class anaUtil {
             log.warn(dev_list.toString());
         }catch (Exception e)
         {
-            log.error("objana_v 初始化异常   "+e.toString()+"   "+helloService.selectAllDev().toString().replace("[","{").replace("]","}"));
+            log.error("devlist 初始化异常   "+e.toString()+"   "+helloService.selectAllDev().toString().replace("[","{").replace("]","}"));
         }
 
 
@@ -695,6 +767,7 @@ public  class anaUtil {
         }
     public  void setRedisVal(String kkey,String val)
     {
+       // String tkey =
         Jedis tjedis= JedisUtil.getInstance().getJedis();
         tjedis.set(kkey+"_.value",val);
         tjedis.set(kkey+"_.status","1");
@@ -719,7 +792,7 @@ public  class anaUtil {
 
             try {
 
-                val = tjedis.get(message);
+                val = tjedis.get(message).trim();
 
 
             } catch (Exception e) {
@@ -747,34 +820,44 @@ public  class anaUtil {
 
 
                 } catch (Exception e) {
+                    log.warn(message +","+vv+ ":" + e.toString());
                     vv = 0;
-                    log.warn(message + ":" + e.toString());
+
 
                 }
-                if (pmessage.matches(retWT)){
+                if (pmessage.matches(coldinwd)){
 
                     if (tjedis.exists("add")){
                         if (vv>tmax) tmax = vv;
                         if (vv<tmin) tmin = vv;
+                        log.info("max:{},min{}",tmax,tmin);
                     }else
                     {
+
                         if (vv > ((JSONObject.toJavaObject((JSONObject)para_list.get(1),Parameter.class)).getValue()))
                         {
+                            log.info("回水温度大于设定温度，开启 {}分钟 监控进程",(JSONObject.toJavaObject((JSONObject)para_list.get(2),Parameter.class)).getValue());
                             tmax = -999.9f;
                             tmin = 999.9f;
-                            tjedis.set("add","1","NX","EX",600);
+                            if (vv>tmax) tmax = vv;
+                            if (vv<tmin) tmin = vv;
+                            log.info("max:{},min{}",tmax,tmin);
+                            tjedis.set("add","1","NX","EX",60*(int)(JSONObject.toJavaObject((JSONObject)para_list.get(2),Parameter.class)).getValue());
                         }
                     }
 
                     try {
-                        vs = Float.parseFloat(tjedis.get(outWT));
+                        vs = Float.parseFloat(tjedis.get(coldoutwd));
                     }catch (Exception e)
                     {
                         log.warn(message + ":" + e.toString());
                     }
-                    if (vv<(JSONObject.toJavaObject((JSONObject)para_list.get(1),Parameter.class)).getValue() && (vv-vs)<2)
+                    if (vv<(JSONObject.toJavaObject((JSONObject)para_list.get(1),Parameter.class)).getValue() && (vv-vs)<(JSONObject.toJavaObject((JSONObject)para_list.get(5),Parameter.class)).getValue())
                     {
-                        tjedis.set("mid","1","NX","EX",300);
+                        //log.info("减机条件达成，开启减机进程");
+                        log.info("减机条件达成，开启 {}分钟 监控进程",(JSONObject.toJavaObject((JSONObject)para_list.get(4),Parameter.class)).getValue());
+
+                        tjedis.set("mid","1","NX","EX",60*(int)(JSONObject.toJavaObject((JSONObject)para_list.get(4),Parameter.class)).getValue());
                     }else
                     {
                         tjedis.del("mid");
@@ -795,6 +878,7 @@ public  class anaUtil {
                  */
                 if ( (ttp == 1) ) {
                     vl = Integer.parseInt(val);
+                    if (dev.getType()==1) val=String.valueOf(Integer.parseInt(val)-1);
                     dev.setError(vl);
 
                     ((JSONObject)dev_list.get(dev.getId())).put("error",dev.getError());
@@ -838,6 +922,7 @@ public  class anaUtil {
                                             break;
                                         case 2:
                                             log.info("{}带故障运行，关闭，开启备用", dev.getDevname());
+                                            stopTheB(dev);
                                             break;
                                         case 4:
                                             log.info("{}带故障运行，关闭主机，重新开启一台", dev.getDevname());
@@ -879,7 +964,7 @@ public  class anaUtil {
                     ((JSONObject)dev_list.get(dev.getId())).put("status",dev.getStatus());
                     helloService.updateDevStatus(dev);
                 }
-                if (pmessage.matches(retkey) && val.matches(String.valueOf(process)))
+                if (pmessage.matches(retkey) && val.matches(String.valueOf(retVal)))
                 {
                    // log.info(pmessage);
                     repeat = 1;
@@ -1013,17 +1098,7 @@ public  class anaUtil {
                repeat = 1;
                dostep();
            }
-            if ("add".matches(message)) {
-                if ((tmax-tmin)<(JSONObject.toJavaObject((JSONObject)para_list.get(3),Parameter.class)).getValue()) {
-                    log.info("加机条件满足，启动加机进程.");
-                    startZJ();
-                }
-            }
 
-            if ("mid".matches(message)) {
-                log.info("减机条件满足，启动减机进程.");
-                stopOneZJ();
-            }
            /* pmessage = message.replace("_.value","");
             try {
                 log.info(pmessage);
@@ -1047,7 +1122,18 @@ public  class anaUtil {
                 log.error(e.toString()+"=====>"+pmessage);
             }*/
         }
+        if ("add".matches(message)) {
+            log.info("加dd.");
+            if ((tmax-tmin)<(JSONObject.toJavaObject((JSONObject)para_list.get(3),Parameter.class)).getValue()) {
+                log.info("加机条件满足，启动加机进程.");
+                startZJ();
+            }
+        }
 
+        if ("mid".matches(message)) {
+            log.info("减机条件满足，启动减机进程.");
+            stopOneZJ();
+        }
 
         val=null;
         pmessage=null;

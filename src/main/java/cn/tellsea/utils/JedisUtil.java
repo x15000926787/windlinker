@@ -45,10 +45,9 @@ public class JedisUtil {
     /** 对存储结构为Set(排序的)类型的操作 */
     public SortSet SORTSET;
     private static JedisPool jedisPool = null;
-    //private static String ADDR = "218.78.29.130";
-    //@Value("${spring.redis.host}")
+    private static String ADDR = "58.247.132.78";
 
-    private static String ADDR="192.168.3.103";// = properutil.getProperty("redis_ip");
+    //="58.247.132.78";// = properutil.getProperty("redis_ip");
     //Redis的端口号
     //@Value("${spring.redis.port}")
     private static int PORT =6389;//= Integer.parseInt(properutil.getProperty("redis_port"));

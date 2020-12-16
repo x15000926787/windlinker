@@ -25,28 +25,14 @@ public interface HelloMapper {
      * @param type
      * @return
      */
-    @Select("select  *\n" +
-            "     from (select * from devlist as a\n" +
-            "                                 where  runtime=(select min(b.runtime)\n" +
-            "                                                   from devlist as b\n" +
-            "                                                    where a.type = b.type and a.valid=b.valid and  a.run=b.run and a.status=b.status and a.error=b.error and a.myerr=b.myerr and a.type=#{type} and a.run=0 and a.error=0 and a.myerr=0 and a.valid=1 and a.status=0\n" +
-            "                                                   )\n" +
-            "           ) as a\n" +
-            "      group by type")
+    @Select("select * from devlist as a where  a.type=#{type} and a.run=0 and a.error=0 and a.myerr=0 and a.valid=1 and a.status=0 order by a.runtime limit 1")
     DevList selectdev(int type);
 
     /**
      * @param type
      * @return
      */
-    @Select("select  *\n" +
-            "     from (select * from devlist as a\n" +
-            "                                 where  runtime=(select max(b.runtime)\n" +
-            "                                                   from devlist as b\n" +
-            "                                                    where a.type = b.type and a.valid=b.valid and  a.run=b.run and a.status=b.status and a.error=b.error and a.myerr=b.myerr and a.type=#{type} and a.run=1 and a.error=0 and a.myerr=0 and a.valid=1 and a.status=0\n" +
-            "                                                   )\n" +
-            "           ) as a\n" +
-            "      group by type")
+    @Select("select * from devlist as a where  a.type=#{type} and a.run=1 and a.error=0 and a.myerr=0 and a.valid=1 and a.status=0 order by a.runtime desc limit 1")
     DevList selectdev4s(int type);
     /**
      *
@@ -121,7 +107,9 @@ public interface HelloMapper {
     // 查询全部数据点
     @Select("SELECT * FROM datalist")
     List<DataList> selectAllData();
-
+    // 根据类型查询数据点
+    @Select("SELECT * FROM datalist where type=#{type} and pid in (select id from devlist where type=#{pid})")
+    List<DataList> selectDatabytp(int pid, int type);
     /**
      * 更新 datalist_time
       */
