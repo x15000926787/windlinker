@@ -178,36 +178,62 @@ public class SpringbootTaskApplication implements CommandLineRunner {
 
             for(String k : responses.keySet()) {
 
-                {
+
+                    tkey = ((JSONObject)anautil.objana_v.get(k)).get("kkey").toString();
+                if (jedis.exists(tkey+"_.value")){
                     try {
-                        luaStr = responses.get(k).get().toString();
+                        luaStr = responses.get(k).get().toString().trim().replace(".000","");
+
                        // log.info(k);
-                        tkey = ((JSONObject)anautil.objana_v.get(k)).get("kkey").toString();
+
+
                         log.warn("read redis: "+(tkey) +"  " + luaStr );
                         dat = JSONObject.toJavaObject((JSONObject)anautil.objana_v.getJSONObject(k),DataList.class);
                         dev = JSONObject.toJavaObject((JSONObject)anautil.dev_list.getJSONObject(String.valueOf(dat.getPid())),DevList.class);
-                        log.info(dat.toString());
-                        log.info(dev.toString());
+
                         switch(dat.getType()){
                             case 0 :
-                                dev.setRun(Integer.parseInt(luaStr));
-                                anautil.objana_v.getJSONObject(k).put("run",luaStr);
+                                if (Integer.parseInt(luaStr)==dev.getReton())
+                                {
+                                    dev.setRun(1);
+                                    anautil.objana_v.getJSONObject(k).put("run","1");
+                                } else{
+                                    dev.setRun(0);
+                                    anautil.objana_v.getJSONObject(k).put("run","0");
+
+                                }
+
+
                                 helloService.updateDevRun(dev);
                                 break; //可选
                             case 1 :
-                                dev.setError(Integer.parseInt(luaStr));
-                                anautil.objana_v.getJSONObject(k).put("error",luaStr);
+                                if (Integer.parseInt(luaStr)==dev.getErron()){
+                                    dev.setError(1);
+                                    anautil.objana_v.getJSONObject(k).put("error","1");
+                                }
+
+                                else{
+                                    dev.setError(0);
+                                    anautil.objana_v.getJSONObject(k).put("error","0");
+                                }
+
                                 helloService.updateDevErr(dev);
                                 break; //可选
                             case 2 :
-                                dev.setStatus(Integer.parseInt(luaStr));
-                                anautil.objana_v.getJSONObject(k).put("status",luaStr);
+                                if (Integer.parseInt(luaStr)==dev.getStatuson()){
+                                    dev.setStatus(0);
+                                    anautil.objana_v.getJSONObject(k).put("status","0");
+                                }
+
+                                else{
+                                    dev.setStatus(1);
+                                    anautil.objana_v.getJSONObject(k).put("status","1");
+                                }
+                                log.info(dev.toString());
                                 helloService.updateDevStatus(dev);
                                 break; //可选
                             case 8 :
                                 dev.setRuntime(Float.parseFloat(luaStr));
-                                log.info(dat.toString());
-                                log.info(dev.toString());
                                 anautil.objana_v.getJSONObject(k).put("runtime",luaStr);
                                 helloService.updateDevTime(dev);
                                 break; //可选
@@ -242,10 +268,10 @@ public class SpringbootTaskApplication implements CommandLineRunner {
                             anaUtil.data[7] = Float.parseFloat(luaStr);
                         }
 
-                        anautil.handleMessage(tkey+"_.value");
+                        //anautil.handleMessage(tkey+"_.value");
 
                     } catch (Exception e) {
-
+                        log.error(k+","+tkey+","+luaStr+":"+e.toString());
                     }
                 }
 

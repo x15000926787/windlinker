@@ -130,7 +130,7 @@ public interface HelloMapper {
     @Update("UPDATE devlist SET run=#{run} WHERE id=#{id}")
     int updateDevRun(DevList data);
 
-    @Update("UPDATE devlist SET status=#{run} WHERE id=#{id}")
+    @Update("UPDATE devlist SET status=#{status} WHERE id=#{id}")
     int updateDevStatus(DevList data);
 
     @Update("UPDATE devlist SET error=#{error} WHERE id=#{id}")

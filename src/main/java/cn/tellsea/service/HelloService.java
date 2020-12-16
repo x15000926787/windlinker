@@ -55,12 +55,15 @@ public class HelloService {
         return dao.updateDevTime(data) > 0;
     }
     public boolean updateDevRun(DevList data) {
+        log.info("run:"+data.toString());
         return dao.updateDevRun(data) > 0;
     }
     public boolean updateDevErr(DevList data) {
+        log.info("err:"+data.toString());
         return dao.updateDevErr(data) > 0;
     }
     public boolean updateDevStatus(DevList data) {
+        log.info("status:"+data.toString());
         return dao.updateDevStatus(data) > 0;
     }
     public boolean updateValue(HelloModel model) {

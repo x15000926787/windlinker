@@ -7,6 +7,7 @@ public class ActionDetial {
     private int wait;
     private int repeat;
     private int last;
+    private int type;
 
     public long getId() {
         return Id;
@@ -16,7 +17,13 @@ public class ActionDetial {
         Id = id;
     }
 
+    public int getType() {
+        return type;
+    }
 
+    public void setType(int type) {
+        this.type = type;
+    }
 
     public int getPid() {
         return pid;
@@ -76,4 +83,13 @@ public class ActionDetial {
 
     private String name;
     private int targettype;
+    private int cnt;
+    public int getCnt() {
+        return cnt;
+    }
+
+    public void setCnt(int targettype) {
+        this.cnt = cnt;
+    }
+
 }

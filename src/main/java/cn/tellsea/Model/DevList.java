@@ -28,6 +28,8 @@ public class DevList {
                 ", reton:" + reton +
                 ", retoff:" + retoff +
                 ", fresh:" + fresh +
+                ", erron:" + erron +
+                ", statuson:" + statuson +
                 '}';
     }
 
@@ -148,6 +150,14 @@ public class DevList {
         return poweroff;
     }
 
+    public int getStatuson() {
+        return statuson;
+    }
+
+    public void setStatuson(int statuson) {
+        this.statuson = statuson;
+    }
+
     public void setPoweroff(int poweroff) {
         this.poweroff = poweroff;
     }
@@ -157,7 +167,14 @@ public class DevList {
     public int reton;
     public int retoff;
     public int fresh;
+    public int erron;
+    public int statuson;
 
+    public int getErron() {
+        return erron;
+    }
 
-
+    public void setErron(int erron) {
+        this.erron = erron;
+    }
 }
