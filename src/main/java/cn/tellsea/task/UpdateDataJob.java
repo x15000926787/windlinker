@@ -158,7 +158,7 @@ public  class UpdateDataJob implements Runnable {
 		Pipeline p = null;
 		log.info("calc ...");
 
-		responses = new HashMap<String,Response<String>>(anautil.objana_v.keySet().size());
+		responses = new HashMap<String,Response<String>>(anaUtil.objana_v.keySet().size());
 
 
 
@@ -230,12 +230,12 @@ public  class UpdateDataJob implements Runnable {
 				anaUtil.data_now[i] = anaUtil.data[i*2+1]-anaUtil.data[i*2];
 			}
 			//冻温，冻压，却温，却压
-			if ((anaUtil.data_now[1]-anaUtil.data_before[1])>((Parameter)anautil.para_list.get(8)).getValue())
+			if ((anaUtil.data_now[1]-anaUtil.data_before[1])>((Parameter)anaUtil.para_list.get(8)).getValue())
 			{
 				anautil.ajust(2,-1);
 			}
 			//冻温，冻压，却温，却压
-			if ((anaUtil.data_now[0]-anaUtil.data_before[0])>((Parameter)anautil.para_list.get(6)).getValue())
+			if ((anaUtil.data_now[0]-anaUtil.data_before[0])>((Parameter)anaUtil.para_list.get(6)).getValue())
 			{
 				anautil.ajust(2,1);
 			}

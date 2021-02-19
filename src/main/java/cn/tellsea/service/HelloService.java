@@ -55,31 +55,39 @@ public class HelloService {
         return dao.updateDevTime(data) > 0;
     }
     public boolean updateDevRun(DevList data) {
-        log.info("run:"+data.toString());
+        log.info("update run: {} {}",data.getDevname(),data.getRun());
         return dao.updateDevRun(data) > 0;
     }
     public boolean updateDevErr(DevList data) {
-        log.info("err:"+data.toString());
+        log.info("update err: {} {}",data.getDevname(),data.getError());
         return dao.updateDevErr(data) > 0;
     }
     public boolean updateDevStatus(DevList data) {
-        log.info("status:"+data.toString());
+        log.info("update status: {} {}",data.getDevname(),data.getStatus());
         return dao.updateDevStatus(data) > 0;
     }
     public boolean updateValue(HelloModel model) {
         return dao.updateValue(model) > 0;
     }
-
+    public boolean updatePara(Float val,int id){ return dao.updatePara(val,id)>0;}
+    public boolean syncPara(Float val,String kkey){ return dao.syncPara(val,kkey)>0;}
     public boolean delete(Integer id) {
         return dao.delete(id) > 0;
     }
     public  List<Parameter> selectAllPara() {
         return dao.selectAllPara();
     }
+    public  List<Parameter> selectSyncPara() {
+        return dao.selectSyncPara();
+    }
     public  List<DevList> selectdevruncount() {
         return dao.selectdevruncount();
     }
+    public  List<DevList> selectzjcount() {
+        return dao.selectzjcount();
+    }
     public  DevList selectdev(int type) {
+       // log.info("select dev: {} ",type);
         return dao.selectdev(type);
     }
     public  List<DevList> selectdevbytype(int type) {
@@ -113,6 +121,9 @@ public class HelloService {
     }
     public  List<DataList> selectDatabytype(int pid,int type) {
         return dao.selectDatabytp(pid,type);
+    }
+    public  List<DataList> selectDatabyttype(int pid,int type) {
+        return dao.selectDatabyttp(pid,type);
     }
 
 

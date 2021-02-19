@@ -11,6 +11,7 @@ public class Parameter {
         this.id = id;
     }
     private String name;
+    private String kkey;
     private float value;
 
     @Override
@@ -19,7 +20,23 @@ public class Parameter {
                 " id:" + id +
                 ",name:'" + name + '\'' +
                 ", value:" + value +
+                ",kkey:'" + kkey + '\'' +
                 '}';
+    }
+    public String tokeyString() {
+        return "'"+kkey+"':{" +
+                " id:" + id +
+                ",name:'" + name + '\'' +
+                ", value:" + value +
+                ",kkey:'" + kkey + '\'' +
+                '}';
+    }
+    public String getKkey() {
+        return kkey;
+    }
+
+    public void setKkey(String kkey) {
+        this.kkey = kkey;
     }
 
     public String getName() {

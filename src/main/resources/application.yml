@@ -11,9 +11,14 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
+    #url: jdbc:mysql://192.168.3.9:3306/scada?useUnicode=true&characterEncoding=utf8&serverTimezone=GMT%2B8
     url: jdbc:mysql://58.247.132.78:3306/mytestdb?useUnicode=true&characterEncoding=utf8&serverTimezone=GMT%2B8
     username: root
     password: Shcs2017@
     type: com.alibaba.druid.pool.DruidDataSource
 
 
+  activemq:
+    brokerUrl: tcp://192.168.3.9:61616
+    user: admin
+    password: admin

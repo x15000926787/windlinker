@@ -9,6 +9,22 @@ public class ActionDetial {
     private int last;
     private int type;
 
+    @Override
+    public String toString() {
+        return "ActionDetial{" +
+                "Id=" + Id +
+                ", pid=" + pid +
+                ", step=" + step +
+                ", wait=" + wait +
+                ", repeat=" + repeat +
+                ", last=" + last +
+                ", type=" + type +
+                ", name='" + name + '\'' +
+                ", targettype=" + targettype +
+                ", need=" + need +
+                '}';
+    }
+
     public long getId() {
         return Id;
     }
@@ -81,15 +97,16 @@ public class ActionDetial {
         this.targettype = targettype;
     }
 
-    private String name;
-    private int targettype;
-    private int cnt;
-    public int getCnt() {
-        return cnt;
+    public int getNeed() {
+        return need;
     }
 
-    public void setCnt(int targettype) {
-        this.cnt = cnt;
+    public void setNeed(int need) {
+        this.need = need;
     }
+
+    private String name;
+    private int targettype;
+    private int need;
 
 }

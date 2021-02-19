@@ -8,7 +8,10 @@ import java.util.Map;
 import java.util.Set;
 
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
@@ -27,7 +30,8 @@ import redis.clients.util.SafeEncoder;
 @Slf4j
 @Component
 @PropertySource({"classpath:para.properties"})
-public class JedisUtil {
+public class JedisUtil //implements InitializingBean
+ {
 
     //private Logger log = Logger.getLogger(this.getClass());
     /**缓存生存时间 */
@@ -44,8 +48,26 @@ public class JedisUtil {
     public Hash HASH;
     /** 对存储结构为Set(排序的)类型的操作 */
     public SortSet SORTSET;
-    private static JedisPool jedisPool = null;
-    private static String ADDR = "58.247.132.78";
+    public static JedisPool jedisPool = null;
+    public static String ADDR = "58.247.132.78";
+
+
+
+    /*@Value("${redis.ip}")
+    public String seADDR;
+
+
+    @Getter
+    @Setter
+    private static String ADDR;
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        ADDR = seADDR;
+    }*/
+
+
+
 
     //="58.247.132.78";// = properutil.getProperty("redis_ip");
     //Redis的端口号
@@ -58,7 +80,8 @@ public class JedisUtil {
     private JedisUtil() {
 
     }
-    static {
+    static
+    {
         JedisPoolConfig config = new JedisPoolConfig();
         //控制一个pool可分配多少个jedis实例，通过pool.getResource()来获取；
         //如果赋值为-1，则表示不限制；如果pool已经分配了maxActive个jedis实例，则此时pool的状态为exhausted(耗尽)。
@@ -85,7 +108,7 @@ public class JedisUtil {
      * 从jedis连接池中获取获取jedis对象
      * @return
      */
-    public Jedis getJedis() {
+    public static Jedis getJedis() {
 
         Jedis tjedis =jedisPool.getResource();
         tjedis.select(0);
@@ -95,7 +118,7 @@ public class JedisUtil {
      * 从jedis连接池中获取获取jedis对象
      * @return
      */
-    public Jedis getJedis(int i) {
+    public  Jedis getJedis(int i) {
         Jedis tjedis =jedisPool.getResource();
         tjedis.select(i);
         return tjedis;
@@ -116,7 +139,7 @@ public class JedisUtil {
      * 回收jedis(放到finally中)
      * @param jedis
      */
-    public void returnJedis(Jedis jedis) {
+    public static void returnJedis(Jedis jedis) {
         if (null != jedis && null != jedisPool) {
             jedisPool.returnResource(jedis);
         }
@@ -132,7 +155,22 @@ public class JedisUtil {
             jedisPool.returnResource(jedis);
         }
     }
-
+    /**
+     * 发送命令
+     * @author ruan 2013-4-11
+     * @param key
+     * @param val
+     */
+    public static void Cmd(String key, String val,float automan) {
+        if (automan == 0) {
+            log.info("手自动模式为:{} 跳出。{},{}",automan,key,val);
+            return;
+        }
+        Jedis jedis = getJedis();
+        jedis.set(key+"_.value", val);
+        jedis.set(key+"_.status", "1");
+        returnJedis(jedis);
+    }
 
     /**
      * 设置过期时间

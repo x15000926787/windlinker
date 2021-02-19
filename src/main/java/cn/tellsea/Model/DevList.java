@@ -30,6 +30,7 @@ public class DevList {
                 ", fresh:" + fresh +
                 ", erron:" + erron +
                 ", statuson:" + statuson +
+                ", parent:" + parent +
                 '}';
     }
 
@@ -101,7 +102,16 @@ public class DevList {
     //可用
     public int valid;
 
+    public int getParent() {
+        return parent;
+    }
 
+    public void setParent(int parent) {
+        this.parent = parent;
+    }
+
+    //从属
+    public int parent;
 
     public int getFresh() {
         return fresh;

@@ -5,6 +5,8 @@ import cn.tellsea.service.RedisService;
 import cn.tellsea.utils.anaUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.ServletContextEvent;
@@ -23,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 @WebListener
+@PropertySource({"classpath:para.properties"})
 public class FirstClass implements ServletContextListener {
     public  ThreadPoolExecutor redis_executor = null;
 
@@ -30,6 +33,8 @@ public class FirstClass implements ServletContextListener {
     public  HelloService helloService;
     @Autowired
     public  RedisService tjedis;
+    @Value("${redis.ip:127.0.0.1}")
+    public static String ip;
     public FirstClass() {
         //log.info("firstclass");
         if (Objects.nonNull(helloService)) System.out.println("firstclass helloService");
@@ -60,6 +65,7 @@ public class FirstClass implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent arg0) {
         log.warn("初始化系统服务...");
+        log.warn(ip);
         //log.warn(tjedis.get("ai_23"));
         /*projectId = PropertyUtil.getProperty("project_id");
         this.springContext = WebApplicationContextUtils.getWebApplicationContext(arg0.getServletContext());

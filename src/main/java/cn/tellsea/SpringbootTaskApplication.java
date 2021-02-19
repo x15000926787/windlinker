@@ -116,6 +116,7 @@ public class SpringbootTaskApplication implements CommandLineRunner {
             anautil.loadAna_v();
             anautil.loadDevList();
             anautil.loadParaList();
+            anautil.loadSyncParaList();
            /* try {
 
                 anautil.objana_v = JSONObject.parseObject(helloService.selectAllData().toString().replace("[","{").replace("]","}"));
@@ -150,7 +151,7 @@ public class SpringbootTaskApplication implements CommandLineRunner {
         Pipeline p = null;
         log.info("refresh data...");
 
-        responses = new HashMap<String,Response<String>>(anautil.objana_v.keySet().size());
+        responses = new HashMap<String,Response<String>>(anaUtil.objana_v.keySet().size());
 
 
 
@@ -158,9 +159,9 @@ public class SpringbootTaskApplication implements CommandLineRunner {
             jedis= JedisUtil.getInstance().getJedis();
 
             p = jedis.pipelined();
-            for(String key1 : anautil.objana_v.keySet()) {
+            for(String key1 : anaUtil.objana_v.keySet()) {
                 //log.info(((JSONObject)anautil.objana_v.get(key1)).get("kkey").toString());
-                responses.put(key1, p.get(((JSONObject)anautil.objana_v.get(key1)).get("kkey").toString()+"_.value"));
+                responses.put(key1, p.get(((JSONObject)anaUtil.objana_v.get(key1)).get("kkey").toString()+"_.value"));
 
             }
 
@@ -179,7 +180,7 @@ public class SpringbootTaskApplication implements CommandLineRunner {
             for(String k : responses.keySet()) {
 
 
-                    tkey = ((JSONObject)anautil.objana_v.get(k)).get("kkey").toString();
+                    tkey = ((JSONObject)anaUtil.objana_v.get(k)).get("kkey").toString();
                 if (jedis.exists(tkey+"_.value")){
                     try {
                         luaStr = responses.get(k).get().toString().trim().replace(".000","");
@@ -188,18 +189,18 @@ public class SpringbootTaskApplication implements CommandLineRunner {
 
 
                         log.warn("read redis: "+(tkey) +"  " + luaStr );
-                        dat = JSONObject.toJavaObject((JSONObject)anautil.objana_v.getJSONObject(k),DataList.class);
-                        dev = JSONObject.toJavaObject((JSONObject)anautil.dev_list.getJSONObject(String.valueOf(dat.getPid())),DevList.class);
+                        dat = JSONObject.toJavaObject((JSONObject)anaUtil.objana_v.getJSONObject(k),DataList.class);
+                        dev = JSONObject.toJavaObject((JSONObject)anaUtil.dev_list.getJSONObject(String.valueOf(dat.getPid())),DevList.class);
 
                         switch(dat.getType()){
                             case 0 :
                                 if (Integer.parseInt(luaStr)==dev.getReton())
                                 {
                                     dev.setRun(1);
-                                    anautil.objana_v.getJSONObject(k).put("run","1");
+                                    anaUtil.objana_v.getJSONObject(k).put("run","1");
                                 } else{
                                     dev.setRun(0);
-                                    anautil.objana_v.getJSONObject(k).put("run","0");
+                                    anaUtil.objana_v.getJSONObject(k).put("run","0");
 
                                 }
 
@@ -209,12 +210,12 @@ public class SpringbootTaskApplication implements CommandLineRunner {
                             case 1 :
                                 if (Integer.parseInt(luaStr)==dev.getErron()){
                                     dev.setError(1);
-                                    anautil.objana_v.getJSONObject(k).put("error","1");
+                                    anaUtil.objana_v.getJSONObject(k).put("error","1");
                                 }
 
                                 else{
                                     dev.setError(0);
-                                    anautil.objana_v.getJSONObject(k).put("error","0");
+                                    anaUtil.objana_v.getJSONObject(k).put("error","0");
                                 }
 
                                 helloService.updateDevErr(dev);
@@ -222,19 +223,19 @@ public class SpringbootTaskApplication implements CommandLineRunner {
                             case 2 :
                                 if (Integer.parseInt(luaStr)==dev.getStatuson()){
                                     dev.setStatus(0);
-                                    anautil.objana_v.getJSONObject(k).put("status","0");
+                                    anaUtil.objana_v.getJSONObject(k).put("status","0");
                                 }
 
                                 else{
                                     dev.setStatus(1);
-                                    anautil.objana_v.getJSONObject(k).put("status","1");
+                                    anaUtil.objana_v.getJSONObject(k).put("status","1");
                                 }
                                 log.info(dev.toString());
                                 helloService.updateDevStatus(dev);
                                 break; //可选
                             case 8 :
                                 dev.setRuntime(Float.parseFloat(luaStr));
-                                anautil.objana_v.getJSONObject(k).put("runtime",luaStr);
+                                anaUtil.objana_v.getJSONObject(k).put("runtime",luaStr);
                                 helloService.updateDevTime(dev);
                                 break; //可选
 
@@ -242,7 +243,7 @@ public class SpringbootTaskApplication implements CommandLineRunner {
                                 break;
                                 
                         }
-
+                        tkey = tkey + "_.value";
                         if ((anautil.coldoutwd.matches(tkey))){
                             anaUtil.data[0] = Float.parseFloat(luaStr);
                         }
@@ -271,6 +272,7 @@ public class SpringbootTaskApplication implements CommandLineRunner {
                         //anautil.handleMessage(tkey+"_.value");
 
                     } catch (Exception e) {
+                        e.printStackTrace();
                         log.error(k+","+tkey+","+luaStr+":"+e.toString());
                     }
                 }
@@ -307,20 +309,12 @@ public class SpringbootTaskApplication implements CommandLineRunner {
             e.printStackTrace();
         }
 
-
-
-
-
-
-
-
-
-
         QuartzManager.addJob("keepRedisAlive" , keepaliveJob.class, "*/30 * * * * ? *");
 
         /**********************开启定时任务*******************/
 
         List<TimeTask> tasktype1 =null; //helloService.selectAllTimeTask();
+
 
         try {
             tasktype1 = helloService.selectAllTimeTask();
@@ -348,10 +342,22 @@ public class SpringbootTaskApplication implements CommandLineRunner {
                         QuartzManager.addJob("ljob" + tmap.getId(), LuaJob.class, tmap.getCronstr(), fmap);
                         break;
                     case 4:
-                        QuartzManager.addJob("ljob" + tmap.getId(), calcJob.class, tmap.getCronstr(), tmap);
+                        Map<String, String> dmap=new HashMap<>();
+                        List<DataList> tlist = helloService.selectDatabyttype(0,17);
+
+                        for (DataList dt : tlist){
+                            dmap.put(dt.getName(),dt.getKkey());
+                        }
+
+                        QuartzManager.addJob("ljob" + tmap.getId(), calcJob.class, tmap.getCronstr(), dmap);
                         log.warn("定时调频任务:" + tmap.getCronstr() + tmap.toString());
                         break;
+                    case 5:
 
+
+                        QuartzManager.addJob("ljob" + tmap.getId(), TimeJob.class, tmap.getCronstr(), maps);
+                        log.warn("计时任务:" + tmap.getCronstr() + tmap.toString());
+                        break;
 
 
                 }

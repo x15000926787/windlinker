@@ -45,6 +45,12 @@ public interface HelloMapper {
      */
     @Select("SELECT * FROM devlist WHERE run=1 and type=1")
     List<DevList> selectdevruncount();
+    /**
+     * 查询当前主机在运行台数
+     * @return
+     */
+    @Select("SELECT * FROM devlist WHERE  type=1 and run=0 and error=0 and myerr=0 and valid=1 and status=0 ")
+    List<DevList> selectzjcount();
 
     /**
      * 查询process
@@ -57,7 +63,7 @@ public interface HelloMapper {
      * 查询step目标电磁阀设备，开机
      * @return
      */
-    @Select("SELECT * FROM  devlist WHERE run=#{pid} and type=#{type}")
+    @Select("SELECT * FROM  devlist WHERE parent=#{pid} and type=#{type} ")
     DevList selectDcfDev(int pid, int type);
 
 
@@ -92,6 +98,10 @@ public interface HelloMapper {
     @Select("SELECT * FROM parameter")
     List<Parameter> selectAllPara();
 
+    // 查询sync参数
+    @Select("SELECT * FROM parameter where length(kkey)>2")
+    List<Parameter> selectSyncPara();
+
     // 查询定时任务
     @Select("SELECT * FROM timetask")
     List<TimeTask> selectAllTimeTask();
@@ -110,6 +120,13 @@ public interface HelloMapper {
     // 根据类型查询数据点
     @Select("SELECT * FROM datalist where type=#{type} and pid in (select id from devlist where type=#{pid})")
     List<DataList> selectDatabytp(int pid, int type);
+
+
+    // 根据类型查询数据点
+    @Select("SELECT * FROM datalist where type=#{type} and pid =#{pid}")
+    List<DataList> selectDatabyttp(int pid, int type);
+
+
     /**
      * 更新 datalist_time
       */
@@ -132,6 +149,13 @@ public interface HelloMapper {
 
     @Update("UPDATE devlist SET status=#{status} WHERE id=#{id}")
     int updateDevStatus(DevList data);
+
+    @Update("UPDATE parameter SET value=#{val} WHERE id=#{id}")
+    int updatePara(Float val, int id);
+
+
+    @Update("UPDATE parameter SET value=#{val} WHERE kkey=#{kkey}")
+    int syncPara(Float val, String kkey);
 
     @Update("UPDATE devlist SET error=#{error} WHERE id=#{id}")
     int updateDevErr(DevList data);

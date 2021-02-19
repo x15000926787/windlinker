@@ -1,6 +1,7 @@
 package cn.tellsea.quartz;
 
 
+import cn.tellsea.Model.DataList;
 import cn.tellsea.Model.Parameter;
 import cn.tellsea.Model.TimeTask_Detial;
 import cn.tellsea.component.SpringUtil;
@@ -8,12 +9,15 @@ import cn.tellsea.service.HelloService;
 import cn.tellsea.service.RedisService;
 import cn.tellsea.utils.JedisUtil;
 import cn.tellsea.utils.anaUtil;
+import com.alibaba.fastjson.JSONObject;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.quartz.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Response;
@@ -24,6 +28,7 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * [任务类]
@@ -34,35 +39,94 @@ import java.util.Map;
 @Slf4j
 @PersistJobDataAfterExecution
 @DisallowConcurrentExecution
+@PropertySource({"classpath:para.properties"})
 public  class calcJob implements Job {
 
-	@Autowired
-	private anaUtil anautil;
+
+
+
 	private HelloService helloService;
 
-	private RedisService redisService;
 
 
-	String message = "J{" +"\"h\":{" +"\"rt\":\"skey\"" +"}," +"\"b\":{" +"\"dl\":{" +"\"ekey\":tval" +"}" +"}" +"}";
+
+
 	   private static final Logger logger = LogManager.getLogger(calcJob.class);
-	   String s = null;
-	   int i=0;
-	      String vals = null;
-	      String keys = null;
-	      String luaStr = null;
 
-	     // String pId = FirstClass.projectId;
-	  //	DBConnection dbcon=null;//
-	  //	PreparedStatement pstmt=null;
-		//ResultSet rs;
 
 
 
 		public calcJob() throws ClassNotFoundException {
 			helloService = (HelloService) SpringUtil.getBean(Class.forName("cn.tellsea.service.HelloService"));
-			redisService = (RedisService) SpringUtil.getBean(Class.forName("cn.tellsea.service.RedisService"));
+
 			
 		}
+	/**
+	 * 调频率
+	 */
+	public  void  ajust(int type,int vv) throws InterruptedException {
+
+		//
+		//log.info("调频进程启动");
+
+		String plfk = null;
+
+
+
+		Jedis tjedis= JedisUtil.getJedis();
+
+		List<DataList> tarlist = helloService.selectDatabytype(type,16);
+		//if (Objects.nonNull(tarlist)) log.info(tarlist.toString());
+		//List<DevList> tarlist= helloService.selectdevbytype(type);
+		Float val=0.0f;
+		try {
+			try {
+				if (type == 2)
+				plfk = (helloService.selectDatabyttype(3,14)).get(0).getKkey();
+				else
+					plfk = (helloService.selectDatabyttype(6,14)).get(0).getKkey();
+				val=Float.parseFloat(tjedis.get(plfk+"_.value"));
+			}catch (Exception e){
+				log.info("redis 找不到 plfk {}",plfk);
+				JedisUtil.returnJedis(tjedis);
+				return;
+			}
+
+			log.info("设备类型id :{} 当前频率：{} ",type,val);
+			if (vv>0)
+			{
+				val= (val+((JSONObject.toJavaObject((JSONObject)anaUtil.para_list.get("10"),Parameter.class)).getValue()));
+			}else
+				val= (val-((JSONObject.toJavaObject((JSONObject)anaUtil.para_list.get("10"),Parameter.class)).getValue()));
+			log.info("目标频率：{} ",val);
+			if (val>=35 && val<=50)
+			{
+				if (Objects.nonNull(tarlist)){
+					for (DataList dl :tarlist)
+					{
+						log.info(dl.getTkey()+","+String.valueOf(val));
+
+						JedisUtil.Cmd(dl.getTkey(),String.valueOf(val),((JSONObject.toJavaObject((JSONObject)anaUtil.para_list.get("15"),Parameter.class)).getValue()));
+
+					}
+				}
+
+			}
+			else
+			{
+				log.info("不在可设置范围内，跳出。");
+			}
+		}catch (Exception e){
+			e.printStackTrace();
+		}
+
+
+
+
+
+		JedisUtil.returnJedis(tjedis);
+
+	}
 	/*
 	 * 读取定时任务清单
 	 *
@@ -98,19 +162,26 @@ public  class calcJob implements Job {
 		Jedis jedis = null;
 		Map<String, Response<String>> responses = null;
 		Pipeline p = null;
-		log.info("calc ...");
+		log.info("calc ajust...");
+		HashMap<String,String> paraobj =(HashMap) (arg0.getJobDetail().getJobDataMap().get("taskdetial"));
+		responses = new HashMap<String,Response<String>>(paraobj.size());
 
-		responses = new HashMap<String,Response<String>>(anautil.objana_v.keySet().size());
+		if ((JSONObject.toJavaObject((JSONObject)anaUtil.para_list.get("15"),Parameter.class)).getValue()==0)
+		{
+			log.info("手自动模式为 0，跳出......");
 
-
+			return;
+		}
 
 		try {
-			jedis= JedisUtil.getInstance().getJedis();
+			jedis= JedisUtil.getJedis();
 
 			p = jedis.pipelined();
-			for(String key1 : anautil.tkeys) {
 
-				responses.put(key1, p.get(key1+"_.value"));
+			for(String key1 : paraobj.keySet()) {
+               //log.info(key1);
+				//log.info(paraobj.get(key1));
+				responses.put(paraobj.get(key1)+"_.value", p.get(paraobj.get(key1)+"_.value"));
 
 			}
 
@@ -126,14 +197,95 @@ public  class calcJob implements Job {
 				e.printStackTrace();
 			}
 
-			for(String tkey : responses.keySet()) {
+
+
+//coldoutwd,coldinwd,coldoutyl,coldinyl,cooloutwd,coolinwd,cooloutyl,coolinyl
+			String tkey = null;
+			try {
+				tkey = paraobj.get("冷冻水出水温度")+"_.value";
+				luaStr = responses.get(tkey).get();
+				anaUtil.data[0] = Float.parseFloat(luaStr);
+			}catch (Exception e)
+			{
+				//e.printStackTrace();
+				anaUtil.data[0] = 0;
+				log.info("redis 找不到 {}",tkey);
+			}
+
+			try {
+				tkey = paraobj.get("冷冻水进水温度")+"_.value";
+				luaStr = responses.get(tkey).get();
+				anaUtil.data[1] = Float.parseFloat(luaStr);
+			}catch (Exception e)
+			{
+				anaUtil.data[1] = 0;
+				log.info("redis 找不到 {}",tkey);
+			}
+			try {
+				tkey = paraobj.get("冷冻水出水压力")+"_.value";
+				luaStr = responses.get(tkey).get();
+				anaUtil.data[2] = Float.parseFloat(luaStr);
+			}catch (Exception e)
+			{
+				anaUtil.data[2] = 0;
+				log.info("redis 找不到 {}",tkey);
+			}
+
+			try {
+				tkey = paraobj.get("冷冻水进水压力")+"_.value";
+				luaStr = responses.get(tkey).get();
+				anaUtil.data[3] = Float.parseFloat(luaStr);
+			}catch (Exception e)
+			{
+				anaUtil.data[3] = 0;
+				log.info("redis 找不到 {}",tkey);
+			}
+			try {
+				tkey = paraobj.get("冷却水进水温度")+"_.value";
+				luaStr = responses.get(tkey).get();
+				anaUtil.data[4] = Float.parseFloat(luaStr);
+			}catch (Exception e)
+			{
+				anaUtil.data[4] = 0;
+				log.info("redis 找不到 {}",tkey);
+			}
+
+			try {
+				tkey = paraobj.get("冷却水出水温度")+"_.value";
+				luaStr = responses.get(tkey).get();
+				anaUtil.data[5] = Float.parseFloat(luaStr);
+			}catch (Exception e)
+			{
+				anaUtil.data[5] = 0;
+				log.info("redis 找不到 {}",tkey);
+			}
+			try {
+				tkey = paraobj.get("冷却水出水压力")+"_.value";
+				luaStr = responses.get(tkey).get();
+				anaUtil.data[6] = Float.parseFloat(luaStr);
+			}catch (Exception e)
+			{
+				anaUtil.data[6] = 0;
+				log.info("redis 找不到 {}",tkey);
+			}
+
+			try {
+				tkey = paraobj.get("冷却水进水压力")+"_.value";
+				luaStr = responses.get(tkey).get();
+				anaUtil.data[7] = Float.parseFloat(luaStr);
+			}catch (Exception e)
+			{
+				anaUtil.data[7] = 0;
+				log.info("redis 找不到 {}",tkey);
+			}
+			/*for(String tkey : responses.keySet()) {
 
 				{
 					try {
 						luaStr = responses.get(tkey).get().toString();
 						log.warn("read redis: "+(tkey) +"  " + luaStr );
 
-
+log.info(anautil.coldoutwd);
 						if ((anautil.coldoutwd.matches(tkey))){
 							anaUtil.data[0] = Float.parseFloat(luaStr);
 						}
@@ -163,15 +315,36 @@ public  class calcJob implements Job {
 
 
 					} catch (Exception e) {
+						e.printStackTrace();
 
 					}
 				}
-			}
+			}*/
 			for (int i=0;i<4;i++)
 			{
 				anaUtil.data_now[i] = anaUtil.data[i*2+1]-anaUtil.data[i*2];
 			}
-			anautil.calcpl();
+			//anautil.calcpl();
+
+
+			try {
+				log.info("冷却水温差 {},临界温差 {}", anaUtil.data_now[2], (JSONObject.toJavaObject((JSONObject) anaUtil.para_list.get("7"), Parameter.class)).getValue());
+				if (anaUtil.data_now[2] > (JSONObject.toJavaObject((JSONObject) anaUtil.para_list.get("7"), Parameter.class)).getValue()) {
+
+					ajust(3, 1);
+				} else {
+
+					ajust(3, -1);
+				}
+				log.info("冷冻水温差 {},临界温差 {}", anaUtil.data_now[0], (JSONObject.toJavaObject((JSONObject) anaUtil.para_list.get("6"), Parameter.class)).getValue());
+				if (anaUtil.data_now[0] > (JSONObject.toJavaObject((JSONObject) anaUtil.para_list.get("6"), Parameter.class)).getValue()) {
+					ajust(2, 1);
+				} else {
+					ajust(2, -1);
+				}
+			}catch (Exception e){
+				e.printStackTrace();
+			}
 
 			try {
 				p.close();
@@ -179,7 +352,7 @@ public  class calcJob implements Job {
 
 
 
-			JedisUtil.getInstance().returnJedis(jedis);
+			JedisUtil.returnJedis(jedis);
 
 			responses.clear();
 
@@ -202,7 +375,7 @@ public  class calcJob implements Job {
 
 
 
-		logger.warn("执行定时任务:  QuartzJob done!");
+		logger.warn("执行定时任务:  调频监测 done!");
 
     }
     	
